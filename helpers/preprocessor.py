@@ -4,9 +4,12 @@ import numpy as np
 from typing import List, Union, Optional
 from sklearn.preprocessing import StandardScaler, OneHotEncoder
 from sklearn.compose import ColumnTransformer
+
+
 class DataPreprocessor:
     """
     Clase para preprocesamiento de datos con seguimiento de transformaciones.
+    Soporta fit en train y transform en test sin data leakage.
     """
     
     def __init__(self, df: pd.DataFrame):
@@ -19,12 +22,22 @@ class DataPreprocessor:
         self.df = df.copy()
         self.original_shape = df.shape
         self.transformations = []
+        
+        # Columnas por defecto
         self.numeric_cols = ['acousticness', 'danceability', 'energy', 'instrumentalness', 
                             'key', 'liveness', 'loudness', 'mode', 'speechiness', 
                             'tempo', 'time_signature', 'valence', 'duration_ms']
-        
         self.cat_cols = ['genre']
         self.preprocessor = None
+        
+        # Variables para guardar transformaciones aprendidas
+        self.top_genres_ = None
+        self.log_transform_cols_ = None
+        self.log_transform_constant_ = None
+        self.dropped_cols_ = None
+        self.drop_nulls_subset_ = None
+        self.drop_nulls_threshold_ = None
+        self.remove_duplicates_subset_ = None
         
         print(f"Preprocesador inicializado con {self.df.shape[0]} filas y {self.df.shape[1]} columnas")
     
@@ -64,6 +77,9 @@ class DataPreprocessor:
         existing_cols = [col for col in columns if col in self.df.columns]
         self.df = self.df.drop(columns=existing_cols)
         
+        # GUARDAR: columnas eliminadas
+        self.dropped_cols_ = existing_cols
+        
         transformation = f"Eliminadas {len(existing_cols)} columnas: {existing_cols}"
         self.transformations.append(transformation)
         print(f"✓ {transformation}")
@@ -101,6 +117,9 @@ class DataPreprocessor:
         # Obtener los top N géneros
         top_genres = genre_popularity.head(top_n).index.tolist()
         
+        # GUARDAR: géneros seleccionados
+        self.top_genres_ = top_genres
+        
         print(f"\n=== FILTRANDO TOP {top_n} GÉNEROS ===")
         print(f"Top {top_n} géneros por popularidad promedio:")
         for i, genre in enumerate(top_genres, 1):
@@ -132,15 +151,20 @@ class DataPreprocessor:
         """
         original_rows = len(self.df)
         
+        # GUARDAR: parámetros de drop_nulls
         if columns:
             if isinstance(columns, str):
                 columns = [columns]
+            self.drop_nulls_subset_ = columns
             self.df = self.df.dropna(subset=columns)
             desc = f"en columnas {columns}"
         elif threshold:
+            self.drop_nulls_threshold_ = threshold
             self.df = self.df.dropna(thresh=int(threshold * len(self.df.columns)))
             desc = f"con threshold {threshold}"
         else:
+            self.drop_nulls_subset_ = None
+            self.drop_nulls_threshold_ = None
             self.df = self.df.dropna()
             desc = "en todas las columnas"
         
@@ -162,6 +186,10 @@ class DataPreprocessor:
             self para permitir method chaining
         """
         original_rows = len(self.df)
+        
+        # GUARDAR: subset de remove_duplicates
+        self.remove_duplicates_subset_ = subset
+        
         self.df = self.df.drop_duplicates(subset=subset)
         
         rows_removed = original_rows - len(self.df)
@@ -172,10 +200,72 @@ class DataPreprocessor:
         
         return self
 
+    def log_transform(self, 
+                     columns: Optional[List[str]] = None,
+                     default_cols: Optional[List[str]] = None,
+                     add_constant: float = 1e-10) -> 'DataPreprocessor':
+        """
+        Aplica transformación logarítmica a columnas especificadas.
+        Útil para reducir el sesgo en distribuciones asimétricas.
+        
+        Args:
+            columns: Lista de columnas a transformar (si None, usa default_cols)
+            default_cols: Columnas por defecto si columns es None
+            add_constant: Constante pequeña para evitar log(0)
+        
+        Returns:
+            self para permitir method chaining
+        """
+        # Definir columnas por defecto si no se especifican
+        if columns is None:
+            if default_cols is None:
+                default_cols = ['instrumentalness', 'liveness', 'speechiness', 'duration_ms']
+            columns = default_cols
+        
+        # Verificar que las columnas existen
+        missing_cols = [col for col in columns if col not in self.df.columns]
+        if missing_cols:
+            print(f"Advertencia: Columnas no encontradas: {missing_cols}")
+            columns = [col for col in columns if col in self.df.columns]
+        
+        if not columns:
+            print("No hay columnas válidas para transformar")
+            return self
+        
+        # GUARDAR: columnas y constante de log transform
+        self.log_transform_cols_ = columns
+        self.log_transform_constant_ = add_constant
+        
+        print(f"\n=== APLICANDO TRANSFORMACIÓN LOGARÍTMICA ===")
+        print(f"Columnas: {columns}")
+        
+        for col in columns:
+            # Verificar valores negativos
+            if (self.df[col] < 0).any():
+                print(f"Advertencia: {col} contiene valores negativos. Se tomarán valores absolutos.")
+                self.df[col] = self.df[col].abs()
+            
+            # Mostrar estadísticas antes
+            skew_before = self.df[col].skew()
+            
+            # Aplicar log(x + constant)
+            self.df[col] = np.log(self.df[col] + add_constant)
+            
+            # Mostrar estadísticas después
+            skew_after = self.df[col].skew()
+            
+            print(f"  {col}: skew antes={skew_before:.3f}, después={skew_after:.3f}")
+        
+        transformation = f"Aplicada transformación logarítmica a {len(columns)} columnas: {columns}"
+        self.transformations.append(transformation)
+        print(f"✓ {transformation}")
+        
+        return self
+
     def transform(self, 
-              numeric_cols: Optional[List[str]] = None,
-              cat_cols: Optional[List[str]] = None,
-              keep_original_names: bool = False) -> 'DataPreprocessor':
+                 numeric_cols: Optional[List[str]] = None,
+                 cat_cols: Optional[List[str]] = None,
+                 keep_original_names: bool = False) -> 'DataPreprocessor':
         """
         Aplica StandardScaler a columnas numéricas y OneHotEncoder a columnas categóricas usando Pipeline.
         
@@ -267,88 +357,90 @@ class DataPreprocessor:
         print(f"  Nuevas columnas: {len(feature_names)} features")
         
         return self
-    def inverse_transform(self) -> 'DataPreprocessor':
+    
+    def apply_to_test(self, test_df: pd.DataFrame, keep_original_names: bool = False) -> pd.DataFrame:
         """
-        Invierte la transformación aplicada (solo para columnas numéricas con StandardScaler).
-        
-        Returns:
-            self para permitir method chaining
-        """
-        if self.column_transformer is None:
-            print("Advertencia: No se ha aplicado ninguna transformación para invertir")
-            return self
-        
-        try:
-            # Esto solo funciona bien para transformaciones numéricas
-            original_data = self.column_transformer.inverse_transform(self.df.values)
-            original_cols = self.numeric_cols + self.cat_cols
-            
-            self.df = pd.DataFrame(original_data, columns=original_cols, index=self.df.index)
-            
-            print("✓ Transformación invertida exitosamente")
-            self.transformations.append("Transformación invertida")
-        except Exception as e:
-            print(f"✗ Error al invertir transformación: {e}")
-            print("Nota: OneHotEncoder no se puede invertir fácilmente")
-        
-        return self
-    def log_transform(self, 
-                  columns: Optional[List[str]] = None,
-                  default_cols: Optional[List[str]] = None,
-                  add_constant: float = 1e-10) -> 'DataPreprocessor':
-        """
-        Aplica transformación logarítmica a columnas especificadas.
-        Útil para reducir el sesgo en distribuciones asimétricas.
+        Aplica TODAS las transformaciones aprendidas en train a un conjunto de test.
         
         Args:
-            columns: Lista de columnas a transformar (si None, usa default_cols)
-            default_cols: Columnas por defecto si columns es None
-            add_constant: Constante pequeña para evitar log(0)
-        
+            test_df: DataFrame de test con columnas originales
+            keep_original_names: Si True, limpia nombres de columnas
+            
         Returns:
-            self para permitir method chaining
+            DataFrame de test transformado
         """
-        # Definir columnas por defecto si no se especifican
-        if columns is None:
-            if default_cols is None:
-                default_cols = ['instrumentalness', 'liveness', 'speechiness', 'duration_ms']
-            columns = default_cols
+        print("\n" + "="*80)
+        print("APLICANDO TRANSFORMACIONES A TEST SET")
+        print("="*80)
         
-        # Verificar que las columnas existen
-        missing_cols = [col for col in columns if col not in self.df.columns]
-        if missing_cols:
-            print(f"Advertencia: Columnas no encontradas: {missing_cols}")
-            columns = [col for col in columns if col in self.df.columns]
+        df_test = test_df.copy()
+        original_rows = len(df_test)
         
-        if not columns:
-            print("No hay columnas válidas para transformar")
-            return self
+        # 1. Drop nulls
+        if self.drop_nulls_subset_ is not None:
+            df_test = df_test.dropna(subset=self.drop_nulls_subset_)
+            print(f"✓ Drop nulls (subset={self.drop_nulls_subset_}): {original_rows} → {len(df_test)}")
+        elif self.drop_nulls_threshold_ is not None:
+            df_test = df_test.dropna(thresh=int(self.drop_nulls_threshold_ * len(df_test.columns)))
+            print(f"✓ Drop nulls (threshold={self.drop_nulls_threshold_}): {original_rows} → {len(df_test)}")
+        elif hasattr(self, 'drop_nulls_subset_'):  # Se llamó drop_nulls() sin parámetros
+            df_test = df_test.dropna()
+            print(f"✓ Drop nulls (all): {original_rows} → {len(df_test)}")
         
-        print(f"\n=== APLICANDO TRANSFORMACIÓN LOGARÍTMICA ===")
-        print(f"Columnas: {columns}")
+        # 2. Remove duplicates
+        if self.remove_duplicates_subset_ is not None or hasattr(self, 'remove_duplicates_subset_'):
+            original_rows = len(df_test)
+            df_test = df_test.drop_duplicates(subset=self.remove_duplicates_subset_)
+            print(f"✓ Remove duplicates: {original_rows} → {len(df_test)}")
         
-        for col in columns:
-            # Verificar valores negativos
-            if (self.df[col] < 0).any():
-                print(f"Advertencia: {col} contiene valores negativos. Se tomarán valores absolutos.")
-                self.df[col] = self.df[col].abs()
-            
-            # Mostrar estadísticas antes
-            skew_before = self.df[col].skew()
-            
-            # Aplicar log(x + constant)
-            self.df[col] = np.log(self.df[col] + add_constant)
-            
-            # Mostrar estadísticas después
-            skew_after = self.df[col].skew()
-            
-            print(f"  {col}: skew antes={skew_before:.3f}, después={skew_after:.3f}")
+        # 3. Drop columns
+        if self.dropped_cols_:
+            existing = [col for col in self.dropped_cols_ if col in df_test.columns]
+            if existing:
+                df_test = df_test.drop(columns=existing)
+                print(f"✓ Dropped columns: {existing}")
         
-        transformation = f"Aplicada transformación logarítmica a {len(columns)} columnas: {columns}"
-        self.transformations.append(transformation)
-        print(f"✓ {transformation}")
+        # 4. Filter top genres
+        if self.top_genres_:
+            original_rows = len(df_test)
+            df_test = df_test[df_test['genre'].isin(self.top_genres_)]
+            removed = original_rows - len(df_test)
+            print(f"✓ Filter genres (usando {len(self.top_genres_)} géneros de train): {original_rows} → {len(df_test)} ({removed} eliminados)")
         
-        return self
+        # 5. Log transform
+        if self.log_transform_cols_:
+            for col in self.log_transform_cols_:
+                if col in df_test.columns:
+                    # Aplicar abs si hay negativos
+                    if (df_test[col] < 0).any():
+                        df_test[col] = df_test[col].abs()
+                    df_test[col] = np.log(df_test[col] + self.log_transform_constant_)
+            print(f"✓ Log transform aplicado a: {self.log_transform_cols_}")
+        
+        # 6. Apply preprocessor (StandardScaler + OneHotEncoder)
+        if self.preprocessor is None:
+            raise ValueError("Preprocessor no entrenado. Ejecuta transform() en train primero.")
+        
+        transformed_data = self.preprocessor.transform(df_test)
+        feature_names = self.preprocessor.get_feature_names_out()
+        
+        # Limpiar nombres si se solicita
+        if keep_original_names:
+            feature_names = [name.replace('num__', '').replace('cat__', '') for name in feature_names]
+        
+        df_transformed = pd.DataFrame(
+            transformed_data,
+            columns=feature_names,
+            index=df_test.index
+        )
+        
+        print(f"✓ StandardScaler + OneHotEncoder aplicado")
+        print(f"\n{'='*80}")
+        print(f"TEST SET TRANSFORMADO: {df_transformed.shape}")
+        print(f"{'='*80}")
+        
+        return df_transformed
+    
     def save(self, output_path: str, **kwargs) -> None:
         """
         Guarda el DataFrame procesado.
@@ -363,6 +455,7 @@ class DataPreprocessor:
         except Exception as e:
             print(f"✗ Error al guardar el archivo: {e}")
             raise
+    
     def get_dataframe(self) -> pd.DataFrame:
         """
         Devuelve el DataFrame procesado.
@@ -374,7 +467,7 @@ class DataPreprocessor:
     
     def save_preprocessor(self, path: str) -> None:
         """
-        Guarda el preprocesador completo (más simple y directo).
+        Guarda el preprocesador completo.
         
         Args:
             path: Ruta donde guardar (con extensión .joblib)
@@ -388,7 +481,7 @@ class DataPreprocessor:
             joblib.dump(self.preprocessor, path)
             print(f"✓ Preprocesador guardado en: {path}")
             
-            # Guardar metadata en archivo separado
+            # Guardar metadata completa
             metadata_path = path.replace('.joblib', '_metadata.joblib')
             metadata = {
                 'numeric_cols': self.numeric_cols,
@@ -396,7 +489,15 @@ class DataPreprocessor:
                 'original_shape': self.original_shape,
                 'transformations': self.transformations,
                 'final_shape': self.df.shape,
-                'feature_names': list(self.df.columns)
+                'feature_names': list(self.df.columns),
+                # Guardar transformaciones aprendidas
+                'top_genres_': self.top_genres_,
+                'log_transform_cols_': self.log_transform_cols_,
+                'log_transform_constant_': self.log_transform_constant_,
+                'dropped_cols_': self.dropped_cols_,
+                'drop_nulls_subset_': self.drop_nulls_subset_,
+                'drop_nulls_threshold_': self.drop_nulls_threshold_,
+                'remove_duplicates_subset_': self.remove_duplicates_subset_
             }
             joblib.dump(metadata, metadata_path)
             print(f"✓ Metadata guardada en: {metadata_path}")
@@ -428,52 +529,23 @@ class DataPreprocessor:
             self.cat_cols = metadata['cat_cols']
             self.original_shape = metadata.get('original_shape', (0, 0))
             
+            # Cargar transformaciones aprendidas
+            self.top_genres_ = metadata.get('top_genres_')
+            self.log_transform_cols_ = metadata.get('log_transform_cols_')
+            self.log_transform_constant_ = metadata.get('log_transform_constant_')
+            self.dropped_cols_ = metadata.get('dropped_cols_')
+            self.drop_nulls_subset_ = metadata.get('drop_nulls_subset_')
+            self.drop_nulls_threshold_ = metadata.get('drop_nulls_threshold_')
+            self.remove_duplicates_subset_ = metadata.get('remove_duplicates_subset_')
+            
             print(f"✓ Metadata cargada")
             print(f"  Columnas numéricas: {self.numeric_cols}")
             print(f"  Columnas categóricas: {self.cat_cols}")
-            print(f"  Features finales: {metadata.get('feature_names', [])[:5]}... ({len(metadata.get('feature_names', []))} total)")
+            if self.top_genres_:
+                print(f"  Top géneros aprendidos: {len(self.top_genres_)}")
             
         except Exception as e:
             print(f"✗ Error al cargar preprocesador: {e}")
             raise
         
         return self
-
-    def apply_preprocessing(self, df: pd.DataFrame) -> pd.DataFrame:
-        """
-        Aplica el preprocesador a nuevos datos (para test o producción).
-        
-        Args:
-            df: DataFrame nuevo con las mismas columnas originales
-        
-        Returns:
-            DataFrame transformado
-        """
-        if self.preprocessor is None:
-            raise ValueError("No hay preprocesador cargado. Usa load_preprocessor() o transform() primero.")
-        
-        print("\n=== APLICANDO PREPROCESAMIENTO A NUEVOS DATOS ===")
-        
-        # Verificar columnas necesarias
-        required_cols = self.numeric_cols + self.cat_cols
-        missing_cols = [col for col in required_cols if col not in df.columns]
-        
-        if missing_cols:
-            raise ValueError(f"Faltan columnas en el DataFrame: {missing_cols}")
-        
-        # Aplicar transformación
-        transformed_data = self.preprocessor.transform(df)
-        
-        # Obtener nombres de columnas
-        feature_names = self.preprocessor.get_feature_names_out()
-        
-        # Crear DataFrame transformado
-        df_transformed = pd.DataFrame(
-            transformed_data,
-            columns=feature_names,
-            index=df.index
-        )
-        
-        print(f"✓ Datos transformados: {df_transformed.shape}")
-        
-        return df_transformed
