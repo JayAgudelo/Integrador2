@@ -208,3 +208,4 @@ __marimo__/
 
 #Temporal
 temp/
+models/randomforest_model.joblib
