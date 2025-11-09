@@ -1,8 +1,10 @@
 from fastapi import FastAPI, UploadFile, File, Form, Query
 from fastapi.middleware.cors import CORSMiddleware
+import numpy as np
 import pandas as pd
 import joblib
 import os
+from pydantic import BaseModel
 import requests
 from backend.api.model import prediction
 from backend.api.feature_extraction import get_complete_features
@@ -121,3 +123,61 @@ def track_features(track_id: str = Query(..., description="ID de ReccoBeats"), g
 
     return filtered_features
 
+class WizardRequest(BaseModel):
+    features: dict
+    locked_features: list[str] = []
+
+@app.post("/wizard-optimize")
+def wizard_optimize(request: WizardRequest):
+    base_features = request.features
+    locked = set(request.locked_features)
+    print(base_features)
+    current_best = base_features.copy()
+    best_score = prediction(preprocessor_route, model, current_best)
+    
+    # Features que deben ser enteras (solo las categóricas/discretas)
+    integer_features = {"duration_ms", "mode", "key", "time_signature"}
+    
+    # Rango de variación simple para features numéricas
+    numeric_ranges = {
+        "acousticness": (0, 1),
+        "danceability": (0, 1),
+        "energy": (0, 1),
+        "instrumentalness": (0, 1),
+        "key": (0, 11),
+        "liveness": (0, 1),
+        "loudness": (-60, 0),
+        "mode": (0, 1),
+        "speechiness": (0, 1),
+        "tempo": (60, 200),
+        "valence": (0, 1),
+        "time_signature": (3, 5),
+        "duration_ms": (60000, 600000)
+    }
+    
+    for feature, (low, high) in numeric_ranges.items():
+        if feature in locked or feature not in current_best:
+            continue
+        
+        # Generar valores de prueba
+        if feature in integer_features:
+            # Para enteros, usar linspace y luego redondear, limitando a 15 valores
+            test_values = np.round(np.linspace(low, high, min(15, int(high - low + 1)))).astype(int)
+            # Eliminar duplicados manteniendo el orden
+            test_values = np.unique(test_values)
+        else:
+            test_values = np.linspace(low, high, 15)
+        
+        for val in test_values:
+            candidate = current_best.copy()
+            # Asignar como int o float según corresponda
+            candidate[feature] = int(val) if feature in integer_features else float(val)
+            score = prediction(preprocessor_route, model, candidate)
+            if score > best_score:
+                best_score = score
+                current_best = candidate.copy()
+    
+    return {
+        "optimized_features": current_best,
+        "predicted_popularity": round(best_score, 2)
+    }
