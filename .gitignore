@@ -209,3 +209,7 @@ __marimo__/
 #Temporal
 temp/
 models/randomforest_model.joblib
+
+#All node modules
+node_modules/
+frontend/node_modules/
