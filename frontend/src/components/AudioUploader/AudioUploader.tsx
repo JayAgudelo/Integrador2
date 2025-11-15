@@ -147,7 +147,7 @@ export default function AudioUploader(): JSX.Element {
 
         {/* Formulario */}
         <div className="mt-6 bg-white p-4 rounded-xl shadow">
-          <label className="block text-sm font-medium text-gray-700">Genero (opcional)</label>
+          <label className="block text-sm font-medium text-gray-700">Genero</label>
           <input
             type="text"
             value={genre}

@@ -2,7 +2,7 @@ import joblib
 import pandas as pd
 import numpy as np
 from typing import List, Union, Optional
-from sklearn.preprocessing import StandardScaler, OneHotEncoder
+from sklearn.preprocessing import StandardScaler, OneHotEncoder, OrdinalEncoder
 from sklearn.compose import ColumnTransformer
 
 
@@ -265,7 +265,7 @@ class DataPreprocessor:
     def transform(self, 
                  numeric_cols: Optional[List[str]] = None,
                  cat_cols: Optional[List[str]] = None,
-                 keep_original_names: bool = False) -> 'DataPreprocessor':
+                 keep_original_names: bool = False,ordinal_encoder = False) -> 'DataPreprocessor':
         """
         Aplica StandardScaler a columnas numéricas y OneHotEncoder a columnas categóricas usando Pipeline.
         
@@ -316,9 +316,14 @@ class DataPreprocessor:
             transformers.append(('num', numeric_pipeline, numeric_cols))
         
         if cat_cols:
-            categorical_pipeline = Pipeline([
-                ('encoder', OneHotEncoder(sparse_output=False, handle_unknown='ignore'))
-            ])
+            if ordinal_encoder:
+                categorical_pipeline = Pipeline([
+                    ('encoder', OrdinalEncoder(handle_unknown='use_encoded_value', unknown_value=-1))
+                ])
+            else:
+                categorical_pipeline = Pipeline([
+                    ('encoder', OneHotEncoder(sparse_output=False, handle_unknown='ignore'))
+                ])
             transformers.append(('cat', categorical_pipeline, cat_cols))
         
         # Crear ColumnTransformer con los pipelines

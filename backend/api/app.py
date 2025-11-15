@@ -43,7 +43,7 @@ async def extract_features(
     genre: str | None = Form(None)
 ):
     """
-    Recibir un audio y optionalmente genero, devolver features
+    Recibir un audio y opcionalmente genero, devolver features
     """
     audio_path = f"temp_{audio.filename}"
     try:

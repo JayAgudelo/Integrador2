@@ -119,7 +119,7 @@ export default function TrackSearch(): JSX.Element {
         />
 
         <label className="block text-sm font-medium text-gray-700 mb-2">
-          Género (opcional)
+          Género
         </label>
         <input
           type="text"
