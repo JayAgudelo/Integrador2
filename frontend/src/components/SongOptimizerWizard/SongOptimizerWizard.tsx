@@ -37,14 +37,14 @@ const featureSliders: { key: keyof Features; label: string; min: number; max: nu
 
 // Lista de géneros completos
 const genreOptions = [
-  "genre_alt-rock", "genre_blues", "genre_chill", "genre_classical",
-  "genre_country", "genre_dance", "genre_edm", "genre_electro",
-  "genre_electronic", "genre_emo", "genre_folk", "genre_french",
-  "genre_funk", "genre_german", "genre_hard-rock", "genre_hardcore",
-  "genre_hip-hop", "genre_house", "genre_indie-pop", "genre_jazz",
-  "genre_k-pop", "genre_metal", "genre_pop", "genre_punk",
-  "genre_rock", "genre_sad", "genre_sertanejo", "genre_singer-songwriter",
-  "genre_soul", "genre_spanish"
+  "alt-rock", "blues", "chill", "classical",
+  "country", "dance", "edm", "electro",
+  "electronic", "emo", "folk", "french",
+  "funk", "german", "hard-rock", "hardcore",
+  "hip-hop", "house", "indie-pop", "jazz",
+  "k-pop", "metal", "pop", "punk",
+  "rock", "sad", "sertanejo", "singer-songwriter",
+  "soul", "spanish"
 ];
 
 export default function SongOptimizerWizard(): JSX.Element {
@@ -129,43 +129,69 @@ export default function SongOptimizerWizard(): JSX.Element {
   };
 
   return (
-    <div className="flex gap-6 p-6">
-      {/* Formulario */}
-      <div className="relative flex-1 bg-white p-6 rounded-xl shadow space-y-4">
+  <div className="flex justify-center p-6">
+    <div className="w-full max-w-6xl flex gap-8">
+
+      {/* FORMULARIO */}
+      <div className="relative flex-1 bg-white p-8 rounded-2xl shadow-lg">
+
         {loading && (
-          <div className="absolute inset-0 bg-white bg-opacity-70 flex items-center justify-center z-10">
-            <div className="animate-spin rounded-full h-12 w-12 border-t-4 border-blue-600 border-b-4"></div>
+          <div className="absolute inset-0 bg-white/70 flex items-center justify-center z-10 rounded-2xl">
+            <div className="animate-spin rounded-full h-12 w-12 border-t-4 border-[#1DB954] border-b-4"></div>
           </div>
         )}
 
-        <h2 className="text-lg font-bold mb-4">Optimizar canción</h2>
+        <h2 className="text-xl font-bold text-gray-900 mb-6">
+          Optimizar canción
+        </h2>
 
-        {featureSliders.map((f) => (
-          <div key={f.key} className="flex items-center gap-3">
-            <label className="w-40">{f.label}</label>
-            <input
-              type="range"
-              min={f.min}
-              max={f.max}
-              step={f.step || 0.01}
-              value={features[f.key]}
-              onChange={(e) => handleSliderChange(f.key, Number(e.target.value))}
-              className="flex-1"
-            />
-            <span className="w-12">{f.percentage ? `${(Number(features[f.key]) * 100).toFixed(0)}%` : features[f.key]}</span>
-            <button onClick={() => toggleLock(f.key)} className="ml-2">
-              {locks[f.key] ? "🔒" : "🔓"}
-            </button>
-          </div>
-        ))}
+        <div className="space-y-5">
+          {featureSliders.map((f) => (
+            <div key={f.key} className="flex items-center gap-4">
+              <label className="w-40 text-sm font-medium text-gray-700">
+                {f.label}
+              </label>
 
-        {/* Dropdown de género */}
-        <div className="flex items-center gap-3 mt-4">
-          <label className="w-40 font-medium">Género</label>
+              <input
+                type="range"
+                min={f.min}
+                max={f.max}
+                step={f.step || 0.01}
+                value={features[f.key]}
+                onChange={(e) =>
+                  handleSliderChange(f.key, Number(e.target.value))
+                }
+                className="flex-1 accent-[#1DB954]"
+              />
+
+              <span className="w-14 text-sm text-gray-600 text-right">
+                {f.percentage
+                  ? `${(Number(features[f.key]) * 100).toFixed(0)}%`
+                  : features[f.key]}
+              </span>
+
+              <button
+                onClick={() => toggleLock(f.key)}
+                className="text-lg"
+              >
+                {locks[f.key] ? "🔒" : "🔓"}
+              </button>
+            </div>
+          ))}
+        </div>
+
+        {/* Género */}
+        <div className="flex items-center gap-4 mt-6">
+          <label className="w-40 text-sm font-semibold text-gray-700">
+            Género musical
+          </label>
+
           <select
             value={`genre_${features.genre}`}
-            onChange={(e) => handleGenreChange(e.target.value.replace("genre_", ""))}
-            className="flex-1 border rounded px-2 py-1 bg-white focus:outline-none focus:ring-2 focus:ring-blue-300"
+            onChange={(e) =>
+              handleGenreChange(e.target.value.replace("genre_", ""))
+            }
+            className="flex-1 rounded-lg border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#1DB954]"
           >
             {genreOptions.map((g) => (
               <option key={g} value={g}>
@@ -173,29 +199,47 @@ export default function SongOptimizerWizard(): JSX.Element {
               </option>
             ))}
           </select>
-          <span className="ml-2">🔒</span>
+
+          <span className="text-lg">🔒</span>
         </div>
 
+        {/* Botón optimizar */}
         <button
           onClick={handleOptimize}
-          className="mt-4 w-full bg-blue-600 text-white py-2 rounded font-semibold"
           disabled={loading}
+          className="mt-8 w-full bg-[#1DB954] hover:bg-[#169c46] text-white py-3 rounded-full font-semibold transition shadow disabled:opacity-60"
         >
-          Optimizar
+          {loading ? "Optimizando..." : "Optimizar canción"}
         </button>
       </div>
 
-      {/* Resultados */}
-      <div className="w-1/3 bg-white p-6 rounded-xl shadow flex flex-col items-center justify-center">
-        <h2 className="text-lg font-bold mb-4">Predicción</h2>
-        <div className="text-5xl font-bold mb-4">
+      {/* RESULTADO */}
+      <div className="w-1/3 bg-white p-8 rounded-2xl shadow-lg flex flex-col items-center justify-center">
+
+        <h2 className="text-lg font-bold text-gray-800 mb-4">
+          Popularidad estimada
+        </h2>
+
+        <div className="text-6xl font-extrabold text-[#1DB954] mb-3">
           {predictionResult !== null ? predictionResult.toFixed(0) : "--"}
         </div>
-        <details className="mt-4 w-full">
-          <summary className="cursor-pointer text-blue-600 font-semibold">Parámetros optimizados</summary>
-          <pre className="text-xs mt-2 overflow-auto max-h-64">{JSON.stringify(features, null, 2)}</pre>
+
+        <p className="text-sm text-gray-500 mb-6">
+          escala 0 – 100
+        </p>
+
+        <details className="w-full">
+          <summary className="cursor-pointer text-[#1DB954] font-medium">
+            Ver parámetros optimizados
+          </summary>
+          <pre className="text-xs mt-3 overflow-auto max-h-64 bg-gray-50 p-3 rounded border">
+            {JSON.stringify(features, null, 2)}
+          </pre>
         </details>
       </div>
+
     </div>
-  );
+  </div>
+);
+
 }

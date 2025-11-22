@@ -46,6 +46,7 @@ async def extract_features(
     Recibir un audio y opcionalmente genero, devolver features
     """
     audio_path = f"temp_{audio.filename}"
+    print(genre)
     try:
         # Guardar temporalmente
         with open(audio_path, "wb") as f:
@@ -57,7 +58,7 @@ async def extract_features(
         
         if genre:
             features["genre"] = genre
-
+        
         return {"features": features}
     finally:
         # Borrar archivo temporal

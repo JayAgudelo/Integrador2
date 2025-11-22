@@ -7,6 +7,16 @@ interface PredictionResult {
   features?: Record<string, any>;
   error?: string;
 }
+const genreOptions = [
+  "alt-rock", "blues", "chill", "classical",
+  "country", "dance", "edm", "electro",
+  "electronic", "emo", "folk", "french",
+  "funk", "german", "hard-rock", "hardcore",
+  "hip-hop", "house", "indie-pop", "jazz",
+  "k-pop", "metal", "pop", "punk",
+  "rock", "sad", "sertanejo", "singer-songwriter",
+  "soul", "spanish"
+];
 
 export default function TrackSearch(): JSX.Element {
   const [spotifyId, setSpotifyId] = useState<string>("");
@@ -104,10 +114,18 @@ export default function TrackSearch(): JSX.Element {
     console.log("Formulario limpiado");
   };
 
-  return (
-    <div className="min-h-screen flex flex-col items-center justify-center p-6 bg-gray-100">
-      <div className="w-full max-w-lg bg-white p-6 rounded-xl shadow">
-        <label className="block text-sm font-medium text-gray-700 mb-2">
+return (
+  <div className="flex justify-center p-6">
+    <div className="w-full max-w-xl">
+
+      <div className="bg-white p-8 rounded-2xl shadow-lg">
+
+        <h2 className="text-xl font-bold text-gray-900 mb-6">
+          Buscar canción por Spotify ID
+        </h2>
+
+        {/* Spotify ID */}
+        <label className="block text-sm font-semibold text-gray-700 mb-2">
           Spotify Track ID
         </label>
         <input
@@ -115,54 +133,79 @@ export default function TrackSearch(): JSX.Element {
           value={spotifyId}
           onChange={(e) => setSpotifyId(e.target.value)}
           placeholder="Ej: 2EKxmYmUdAVXlaHCnnW13o"
-          className="w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-300 mb-4"
+          className="w-full rounded-lg border border-gray-300 px-4 py-2 mb-5 focus:outline-none focus:ring-2 focus:ring-[#1DB954]"
         />
 
-        <label className="block text-sm font-medium text-gray-700 mb-2">
-          Género
+        {/* Género */}
+        <label className="block text-sm font-semibold text-gray-700 mb-2">
+          Género musical
         </label>
-        <input
-          type="text"
+        <select
           value={genre}
           onChange={(e) => setGenre(e.target.value)}
-          placeholder="rock, pop, jazz..."
-          className="w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-300 mb-4"
-        />
+          className="w-full rounded-lg border border-gray-300 px-4 py-2 focus:outline-none focus:ring-2 focus:ring-[#1DB954] mb-6"
+        >
+          <option value="">Seleccionar género</option>
+          {genreOptions.map((g) => (
+            <option key={g} value={g}>
+              {g.replace("-", " ")}
+            </option>
+          ))}
+        </select>
 
-        <div className="flex gap-3 mb-4">
+        {/* Botones */}
+        <div className="flex gap-4">
           <button
             onClick={handleSearch}
             disabled={loading}
-            className="flex-1 bg-blue-600 text-white py-2 rounded font-semibold disabled:opacity-60"
+            className="flex-1 bg-[#1DB954] hover:bg-[#169c46] text-white py-2.5 rounded-full font-semibold transition disabled:opacity-60 shadow"
           >
-            {loading ? "Cargando..." : "Buscar y predecir"}
+            {loading ? "Analizando..." : "Buscar y predecir"}
           </button>
+
           <button
             onClick={handleClear}
-            className="px-4 py-2 border rounded font-semibold"
+            className="px-6 py-2.5 rounded-full border border-gray-300 font-semibold text-gray-700 hover:bg-gray-100 transition"
           >
             Limpiar
           </button>
         </div>
 
-        {error && <p className="text-red-600 text-sm mb-3">{error}</p>}
-
-        {result && (
-          <div className="mt-4 p-3 bg-gray-50 rounded">
-            <p className="font-semibold">
-              Prediccion: {String(result.prediction)}
-            </p>
-            <details className="mt-2">
-              <summary className="cursor-pointer text-sm text-blue-600">
-                Ver features
-              </summary>
-              <pre className="text-xs mt-2 overflow-auto max-h-48">
-                {JSON.stringify(result.features ?? {}, null, 2)}
-              </pre>
-            </details>
-          </div>
+        {error && (
+          <p className="mt-4 text-sm text-red-600 font-medium">
+            {error}
+          </p>
         )}
+
+        {/* Resultado */}
+        {result && (
+  <div className="mt-8 p-5 rounded-2xl bg-[#121212] text-white shadow-lg">
+    <p className="text-lg font-semibold">
+      Predicción de popularidad
+    </p>
+
+    <p className="text-3xl font-bold text-[#1DB954] mt-1">
+      {Number.isFinite(Number(result.prediction)) 
+        ? Math.round(Number(result.prediction)) 
+        : String(result.prediction)}
+    </p>
+
+    <details className="mt-4">
+      <summary className="cursor-pointer text-sm text-gray-300">
+        Ver features técnicos
+      </summary>
+      <pre className="text-xs mt-3 overflow-auto max-h-48 bg-black/40 p-3 rounded">
+        {JSON.stringify(result.features ?? {}, null, 2)}
+      </pre>
+    </details>
+  </div>
+)}
+
+
       </div>
     </div>
-  );
+  </div>
+);
+
+
 }

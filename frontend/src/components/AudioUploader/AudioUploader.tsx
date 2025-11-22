@@ -6,7 +6,16 @@ interface PredictionResult {
   features?: Record<string, any>;
   error?: string;
 }
-
+const genreOptions = [
+  "alt-rock", "blues", "chill", "classical",
+  "country", "dance", "edm", "electro",
+  "electronic", "emo", "folk", "french",
+  "funk", "german", "hard-rock", "hardcore",
+  "hip-hop", "house", "indie-pop", "jazz",
+  "k-pop", "metal", "pop", "punk",
+  "rock", "sad", "sertanejo", "singer-songwriter",
+  "soul", "spanish"
+];
 export default function AudioUploader(): JSX.Element {
   const [file, setFile] = useState<File | null>(null);
   const [genre, setGenre] = useState<string>("");
@@ -118,86 +127,121 @@ export default function AudioUploader(): JSX.Element {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100 p-6">
-      <div className="w-full max-w-2xl">
-        {/* Upload area */}
-        <div
-          onDragEnter={handleDrag}
-          onDragOver={handleDrag}
-          onDragLeave={handleDrag}
-          onDrop={handleDrop}
-          onClick={() => inputRef.current?.click()}
-          className={`cursor-pointer p-8 rounded-2xl border-4 border-dashed transition-all duration-200
-            ${dragActive ? "border-blue-500 bg-blue-50" : "border-gray-300 bg-white"}`}
+  <div className="flex justify-center p-6">
+    <div className="w-full max-w-3xl">
+
+      {/* Zona de subida */}
+      <div
+        onDragEnter={handleDrag}
+        onDragOver={handleDrag}
+        onDragLeave={handleDrag}
+        onDrop={handleDrop}
+        onClick={() => inputRef.current?.click()}
+        className={`cursor-pointer p-10 rounded-2xl border-2 border-dashed transition-all duration-200 text-center
+          ${dragActive 
+            ? "border-[#1DB954] bg-green-50" 
+            : "border-gray-300 bg-white hover:border-[#1DB954]"}`}
+      >
+        <input
+          ref={inputRef}
+          type="file"
+          accept="audio/*"
+          className="hidden"
+          onChange={handleFileChange}
+        />
+
+        <p className="text-lg font-semibold text-gray-800">
+          Arrastra tu audio aquí
+        </p>
+        <p className="text-sm text-gray-500 mt-2">
+          o haz clic para seleccionar archivo
+        </p>
+        <p className="text-xs text-gray-400 mt-1">
+          mp3, wav, ogg
+        </p>
+      </div>
+
+      {/* Panel de configuración */}
+      <div className="mt-8 bg-white p-6 rounded-2xl shadow-lg">
+
+        <label className="block text-sm font-semibold text-gray-700 mb-2">
+          Género musical
+        </label>
+
+        <select
+          value={genre}
+          onChange={(e) => setGenre(e.target.value)}
+          className="w-full rounded-lg border px-4 py-2 focus:outline-none focus:ring-2 focus:ring-[#1DB954]"
         >
-          <input
-            ref={inputRef}
-            type="file"
-            accept="audio/*"
-            className="hidden"
-            onChange={handleFileChange}
-          />
-          <div className="text-center">
-            <p className="mt-4 font-semibold text-gray-700">
-              Arrastra tu audio aqui o haz clic para seleccionar
+          <option value="">Seleccionar género</option>
+          {genreOptions.map((g) => (
+            <option key={g} value={g}>
+              {g.replace("-", " ")}
+            </option>
+          ))}
+        </select>
+
+        {file && (
+          <div className="mt-6 bg-gray-50 p-4 rounded-xl">
+            <p className="font-medium text-gray-800 truncate">{file.name}</p>
+            <p className="text-sm text-gray-500">
+              {(file.size / 1024 / 1024).toFixed(2)} MB
             </p>
-            <p className="text-sm text-gray-500 mt-2">Formatos: mp3, wav, ogg</p>
+
+            <audio ref={audioRef} controls className="mt-3 w-full">
+              <source src={URL.createObjectURL(file)} type={file.type} />
+            </audio>
           </div>
+        )}
+
+        <div className="flex gap-4 mt-6">
+          <button
+            onClick={handleUpload}
+            disabled={loading}
+            className="flex-1 bg-[#1DB954] hover:bg-[#169c46] text-white py-3 rounded-full font-semibold transition disabled:opacity-60"
+          >
+            {loading ? "Analizando..." : "Analizar canción"}
+          </button>
+
+          <button
+            onClick={handleClear}
+            className="px-6 py-3 rounded-full border border-gray-300 hover:bg-gray-100 transition"
+          >
+            Limpiar
+          </button>
         </div>
 
-        {/* Formulario */}
-        <div className="mt-6 bg-white p-4 rounded-xl shadow">
-          <label className="block text-sm font-medium text-gray-700">Genero</label>
-          <input
-            type="text"
-            value={genre}
-            onChange={(e) => setGenre(e.target.value)}
-            placeholder="rock, pop, jazz..."
-            className="mt-2 mb-3 w-full rounded border px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-300"
-          />
+        {error && (
+          <p className="mt-4 text-sm text-red-600 font-medium">
+            {error}
+          </p>
+        )}
 
-          {file && (
-            <div className="mb-4">
-              <p className="font-medium text-gray-800 truncate">{file.name}</p>
-              <p className="text-sm text-gray-500">{(file.size / 1024 / 1024).toFixed(2)} MB</p>
+        {result && (
+  <div className="mt-8 p-5 rounded-2xl bg-[#121212] text-white shadow-lg">
+    <p className="text-lg font-semibold">
+      Predicción de popularidad
+    </p>
 
-              {/* Player de audio */}
-              <audio ref={audioRef} controls className="mt-2 w-full">
-                <source src={URL.createObjectURL(file)} type={file.type} />
-                Tu navegador no soporta audio
-              </audio>
-            </div>
-          )}
+    <p className="text-3xl font-bold text-[#1DB954] mt-1">
+      {Number.isFinite(Number(result.prediction)) 
+        ? Math.round(Number(result.prediction)) 
+        : String(result.prediction)}
+    </p>
 
-          <div className="flex gap-3">
-            <button
-              onClick={handleUpload}
-              disabled={loading}
-              className="flex-1 bg-blue-600 text-white py-2 rounded-lg font-semibold disabled:opacity-60"
-            >
-              {loading ? "Procesando..." : "Subir y analizar"}
-            </button>
+    <details className="mt-4">
+      <summary className="cursor-pointer text-sm text-gray-300">
+        Ver features técnicos
+      </summary>
+      <pre className="text-xs mt-3 overflow-auto max-h-48 bg-black/40 p-3 rounded">
+        {JSON.stringify(result.features ?? {}, null, 2)}
+      </pre>
+    </details>
+  </div>
+)}
 
-            <button onClick={handleClear} className="px-4 py-2 border rounded-lg">
-              Limpiar
-            </button>
-          </div>
-
-          {error && <p className="mt-3 text-sm text-red-600">{error}</p>}
-
-          {result && (
-            <div className="mt-4 p-3 bg-gray-50 rounded">
-              <p className="font-semibold">Prediccion: {String(result.prediction)}</p>
-              <details className="mt-2">
-                <summary className="cursor-pointer text-sm text-blue-600">Ver features</summary>
-                <pre className="text-xs mt-2 overflow-auto max-h-48">
-                  {JSON.stringify(result.features ?? {}, null, 2)}
-                </pre>
-              </details>
-            </div>
-          )}
-        </div>
       </div>
     </div>
-  );
+  </div>
+);
 }
