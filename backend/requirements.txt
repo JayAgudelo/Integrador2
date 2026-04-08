@@ -9,3 +9,4 @@ pandas
 librosa
 scikit-learn
 python-multipart
+lightgbm
