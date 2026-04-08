@@ -7,6 +7,6 @@ python-dotenv
 pydantic
 pandas
 librosa
-scikit-learn
+scikit-learn>=1.2.2,<1.4
 python-multipart
 lightgbm
