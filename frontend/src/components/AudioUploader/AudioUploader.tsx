@@ -1,9 +1,12 @@
 import React, { useEffect, useRef, useState } from "react";
 import confetti from "canvas-confetti";
 import useProgressLoop from "../../hooks/useProgressLoop";
+import useDelayedMessage from "../../hooks/useDelayedMessage";
 import { useI18n } from "../../i18n";
 import { AnalysisSession, FeatureSet } from "../../types/analysis";
 import { STORAGE_KEYS, loadJson, saveJson } from "../../utils/storage";
+import { fetchWithTimeout } from "../../utils/fetchWithTimeout";
+import { BACKEND_URL } from "../../utils/backend";
 
 interface AudioUploaderProps {
   onAnalysisComplete: (session: AnalysisSession) => void;
@@ -99,6 +102,7 @@ export default function AudioUploader({
 
   const inputRef = useRef<HTMLInputElement | null>(null);
   const progress = useProgressLoop(progressStatus);
+  const longWait = useDelayedMessage(progressStatus === "loading");
 
   useEffect(() => {
     saveJson(STORAGE_KEYS.uploadDraft, { genre });
@@ -179,12 +183,12 @@ export default function AudioUploader({
     setError(null);
 
     try {
-      const backendUrl = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
+      const backendUrl = BACKEND_URL;
       const formData = new FormData();
       formData.append("audio", file);
       formData.append("genre", genre);
 
-      const featuresResponse = await fetch(`${backendUrl}/extract-features`, {
+      const featuresResponse = await fetchWithTimeout(`${backendUrl}/extract-features`, {
         method: "POST",
         body: formData,
       });
@@ -201,7 +205,7 @@ export default function AudioUploader({
         throw createUploadError(t, "extract", "The backend did not return a valid feature set for the uploaded file.");
       }
 
-      const predictionResponse = await fetch(`${backendUrl}/predict`, {
+      const predictionResponse = await fetchWithTimeout(`${backendUrl}/predict`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(features),
@@ -324,7 +328,9 @@ export default function AudioUploader({
               </div>
               <p className="mt-3 text-sm text-app-muted">
                 {progressStatus === "loading"
-                  ? t("upload.progressBodyLoading")
+                  ? longWait
+                    ? t("upload.progressBodyLongWait")
+                    : t("upload.progressBodyLoading")
                   : t("upload.progressBodyIdle")}
               </p>
             </div>

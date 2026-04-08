@@ -3,6 +3,8 @@ import confetti from "canvas-confetti";
 import { useI18n } from "../../i18n";
 import { AnalysisSession, FeatureSet, OptimizerSession } from "../../types/analysis";
 import { saveOptimizerSession } from "../../utils/storage";
+import { fetchWithTimeout } from "../../utils/fetchWithTimeout";
+import { BACKEND_URL } from "../../utils/backend";
 
 interface SongOptimizerWizardProps {
   analysisSession: AnalysisSession | null;
@@ -132,13 +134,13 @@ export default function SongOptimizerWizard({
     setGeneratedBeatUrl(null);
 
     try {
-      const backendUrl = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
+      const backendUrl = BACKEND_URL;
       const payload = {
         features: buildBeatPayload(),
         duration_seconds: 15,
       };
 
-      const response = await fetch(`${backendUrl}/generate-beat-base`, {
+      const response = await fetchWithTimeout(`${backendUrl}/generate-beat-base`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
@@ -166,7 +168,7 @@ export default function SongOptimizerWizard({
     setError(null);
 
     try {
-      const backendUrl = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
+      const backendUrl = BACKEND_URL;
       const payload = {
         features,
         locked_features: Object.entries(locks)
@@ -174,7 +176,7 @@ export default function SongOptimizerWizard({
           .map(([key]) => key),
       };
 
-      const response = await fetch(`${backendUrl}/wizard-optimize`, {
+      const response = await fetchWithTimeout(`${backendUrl}/wizard-optimize`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),

@@ -1,9 +1,12 @@
 import confetti from "canvas-confetti";
 import React, { useEffect, useState } from "react";
 import useProgressLoop from "../../hooks/useProgressLoop";
+import useDelayedMessage from "../../hooks/useDelayedMessage";
 import { useI18n } from "../../i18n";
 import { AnalysisSession, FeatureSet } from "../../types/analysis";
 import { STORAGE_KEYS, loadJson, saveJson } from "../../utils/storage";
+import { fetchWithTimeout } from "../../utils/fetchWithTimeout";
+import { BACKEND_URL } from "../../utils/backend";
 
 interface TrackSearchProps {
   onAnalysisComplete: (session: AnalysisSession) => void;
@@ -88,6 +91,7 @@ export default function TrackSearch({
   const [progressStatus, setProgressStatus] = useState<ProgressStatus>("idle");
   const [error, setError] = useState<SearchErrorState | null>(null);
   const progress = useProgressLoop(progressStatus);
+  const longWait = useDelayedMessage(progressStatus === "loading");
 
   const buildError = (title: string, message: string): SearchError =>
     Object.assign(new Error(message), { title, message });
@@ -121,8 +125,8 @@ export default function TrackSearch({
     setError(null);
 
     try {
-      const backendUrl = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
-      const searchResponse = await fetch(`${backendUrl}/search-track?ids=${normalizedId}`);
+      const backendUrl = BACKEND_URL;
+      const searchResponse = await fetchWithTimeout(`${backendUrl}/search-track?ids=${normalizedId}`);
       const searchData = await searchResponse.json();
 
       if (!searchResponse.ok || searchData.error) {
@@ -135,7 +139,7 @@ export default function TrackSearch({
         throw buildError(t("errors.spotifyResolveTitle"), t("errors.spotifyResolveBody"));
       }
 
-      const featuresResponse = await fetch(
+      const featuresResponse = await fetchWithTimeout(
         `${backendUrl}/track-features?track_id=${trackId}&genre=${encodeURIComponent(genre)}`
       );
       const featuresData = await featuresResponse.json();
@@ -144,7 +148,7 @@ export default function TrackSearch({
         throw buildError(t("errors.spotifyFeaturesTitle"), featuresData.error || t("errors.spotifyFeaturesBody"));
       }
 
-      const predictionResponse = await fetch(`${backendUrl}/predict`, {
+      const predictionResponse = await fetchWithTimeout(`${backendUrl}/predict`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ ...featuresData }),
@@ -262,7 +266,11 @@ export default function TrackSearch({
             {progressStatus === "loading" && <div className="progress-flow" />}
           </div>
           <p className="mt-3 text-sm text-app-muted">
-            {progressStatus === "loading" ? t("upload.progressBodyLoading") : t("upload.progressBodyIdle")}
+            {progressStatus === "loading"
+              ? longWait
+                ? t("search.progressBodyLongWait")
+                : t("upload.progressBodyLoading")
+              : t("upload.progressBodyIdle")}
           </p>
         </div>
 

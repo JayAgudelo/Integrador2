@@ -20,10 +20,30 @@ app = FastAPI()
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_origins=[
+        "https://musicpredictor.netlify.app",
+        "http://localhost:3000",
+        "http://localhost:8000",
+        "https://integrador2-37j4.onrender.com"
+    ],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allow_headers=[
+        "Accept",
+        "Accept-Language",
+        "Content-Language",
+        "Content-Type",
+        "Authorization",
+        "X-Requested-With"
+    ],
+    allow_credentials=True,
+    expose_headers=["*"],
+    max_age=86400,
 )
+
+# Handle preflight OPTIONS requests
+@app.options("/{path:path}")
+async def preflight_handler():
+    return JSONResponse(status_code=200, content={"message": "OK"})
 
 # Lazy loading for model
 _model = None
