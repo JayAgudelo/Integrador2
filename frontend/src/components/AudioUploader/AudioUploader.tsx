@@ -179,11 +179,12 @@ export default function AudioUploader({
     setError(null);
 
     try {
+      const backendUrl = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
       const formData = new FormData();
       formData.append("audio", file);
       formData.append("genre", genre);
 
-      const featuresResponse = await fetch("http://localhost:8000/extract-features", {
+      const featuresResponse = await fetch(`${backendUrl}/extract-features`, {
         method: "POST",
         body: formData,
       });
@@ -200,7 +201,7 @@ export default function AudioUploader({
         throw createUploadError(t, "extract", "The backend did not return a valid feature set for the uploaded file.");
       }
 
-      const predictionResponse = await fetch("http://localhost:8000/predict", {
+      const predictionResponse = await fetch(`${backendUrl}/predict`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(features),

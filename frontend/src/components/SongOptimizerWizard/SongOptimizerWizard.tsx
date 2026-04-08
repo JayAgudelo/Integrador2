@@ -132,12 +132,13 @@ export default function SongOptimizerWizard({
     setGeneratedBeatUrl(null);
 
     try {
+      const backendUrl = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
       const payload = {
         features: buildBeatPayload(),
         duration_seconds: 15,
       };
 
-      const response = await fetch("http://localhost:8000/generate-beat-base", {
+      const response = await fetch(`${backendUrl}/generate-beat-base`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
@@ -165,6 +166,7 @@ export default function SongOptimizerWizard({
     setError(null);
 
     try {
+      const backendUrl = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
       const payload = {
         features,
         locked_features: Object.entries(locks)
@@ -172,7 +174,7 @@ export default function SongOptimizerWizard({
           .map(([key]) => key),
       };
 
-      const response = await fetch("http://localhost:8000/wizard-optimize", {
+      const response = await fetch(`${backendUrl}/wizard-optimize`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),

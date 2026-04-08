@@ -5,12 +5,16 @@ import numpy as np
 import joblib
 import os
 import time
+import logging
 from pydantic import BaseModel
 import requests
 from dotenv import load_dotenv
 
 from backend.api.model import prediction
 from backend.api.feature_extraction import get_complete_features
+
+# Configure logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 app = FastAPI()
 
@@ -21,8 +25,22 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-model = joblib.load("backend/api/models/model.joblib")
-preprocessor_route = "backend/api/models/preprocessor.joblib"
+# Lazy loading for model
+_model = None
+_preprocessor_route = "backend/api/models/preprocessor.joblib"
+
+def get_model():
+    global _model
+    if _model is None:
+        try:
+            logging.info("Loading model...")
+            _model = joblib.load("backend/api/models/model.joblib")
+            logging.info("Model loaded successfully.")
+        except Exception as e:
+            logging.error(f"Failed to load model: {e}")
+            raise
+    return _model
+
 RECCO_BASE = "https://api.reccobeats.com/v1"
 
 
@@ -36,9 +54,11 @@ def error_response(stage: str, message: str, status_code: int = 400, detail: str
 @app.post("/predict")
 async def predict_from_features(features: dict):
     try:
-        popularity_pred = prediction(preprocessor_route, model, features)
+        model = get_model()
+        popularity_pred = prediction(_preprocessor_route, model, features)
         return {"prediction": popularity_pred, "features": features}
     except Exception as exc:
+        logging.error(f"Prediction failed: {exc}")
         return error_response("predict", "Prediction failed for the provided feature set.", 500, str(exc))
 
 
@@ -219,10 +239,11 @@ def compose_beatoven_track(prompt_text: str, duration_seconds: int = 15, output_
 @app.post("/wizard-optimize")
 def wizard_optimize(request: WizardRequest):
     try:
+        model = get_model()
         base_features = request.features
         locked = set(request.locked_features)
         current_best = base_features.copy()
-        best_score = prediction(preprocessor_route, model, current_best)
+        best_score = prediction(_preprocessor_route, model, current_best)
 
         integer_features = {"duration_ms", "mode", "key", "time_signature"}
         numeric_ranges = {
@@ -254,7 +275,7 @@ def wizard_optimize(request: WizardRequest):
             for val in test_values:
                 candidate = current_best.copy()
                 candidate[feature] = int(val) if feature in integer_features else float(val)
-                score = prediction(preprocessor_route, model, candidate)
+                score = prediction(_preprocessor_route, model, candidate)
                 if score > best_score:
                     best_score = score
                     current_best = candidate.copy()
@@ -264,6 +285,7 @@ def wizard_optimize(request: WizardRequest):
             "predicted_popularity": round(best_score, 2),
         }
     except Exception as exc:
+        logging.error(f"Wizard optimize failed: {exc}")
         return error_response("wizard-optimize", "Optimization failed for the provided feature set.", 500, str(exc))
 
 

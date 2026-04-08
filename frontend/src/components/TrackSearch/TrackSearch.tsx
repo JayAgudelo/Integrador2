@@ -121,7 +121,8 @@ export default function TrackSearch({
     setError(null);
 
     try {
-      const searchResponse = await fetch(`http://localhost:8000/search-track?ids=${normalizedId}`);
+      const backendUrl = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
+      const searchResponse = await fetch(`${backendUrl}/search-track?ids=${normalizedId}`);
       const searchData = await searchResponse.json();
 
       if (!searchResponse.ok || searchData.error) {
@@ -135,7 +136,7 @@ export default function TrackSearch({
       }
 
       const featuresResponse = await fetch(
-        `http://localhost:8000/track-features?track_id=${trackId}&genre=${encodeURIComponent(genre)}`
+        `${backendUrl}/track-features?track_id=${trackId}&genre=${encodeURIComponent(genre)}`
       );
       const featuresData = await featuresResponse.json();
 
@@ -143,7 +144,7 @@ export default function TrackSearch({
         throw buildError(t("errors.spotifyFeaturesTitle"), featuresData.error || t("errors.spotifyFeaturesBody"));
       }
 
-      const predictionResponse = await fetch("http://localhost:8000/predict", {
+      const predictionResponse = await fetch(`${backendUrl}/predict`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ ...featuresData }),
