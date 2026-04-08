@@ -1,211 +1,332 @@
 import confetti from "canvas-confetti";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
+import useProgressLoop from "../../hooks/useProgressLoop";
+import { useI18n } from "../../i18n";
+import { AnalysisSession, FeatureSet } from "../../types/analysis";
+import { STORAGE_KEYS, loadJson, saveJson } from "../../utils/storage";
 
-
-interface PredictionResult {
-  prediction?: number | string;
-  features?: Record<string, any>;
-  error?: string;
+interface TrackSearchProps {
+  onAnalysisComplete: (session: AnalysisSession) => void;
+  onTryAlternateRoute: () => void;
 }
+
+interface SearchDraft {
+  spotifyId: string;
+  genre: string;
+}
+
+interface SearchErrorState {
+  title: string;
+  message: string;
+}
+
+interface SearchError extends Error, SearchErrorState {}
+
+type ProgressStatus = "idle" | "loading" | "success" | "error";
+
 const genreOptions = [
-  "alt-rock", "blues", "chill", "classical",
-  "country", "dance", "edm", "electro",
-  "electronic", "emo", "folk", "french",
-  "funk", "german", "hard-rock", "hardcore",
-  "hip-hop", "house", "indie-pop", "jazz",
-  "k-pop", "metal", "pop", "punk",
-  "rock", "sad", "sertanejo", "singer-songwriter",
-  "soul", "spanish"
+  "alt-rock",
+  "blues",
+  "chill",
+  "classical",
+  "country",
+  "dance",
+  "edm",
+  "electro",
+  "electronic",
+  "emo",
+  "folk",
+  "french",
+  "funk",
+  "german",
+  "hard-rock",
+  "hardcore",
+  "hip-hop",
+  "house",
+  "indie-pop",
+  "jazz",
+  "k-pop",
+  "metal",
+  "pop",
+  "punk",
+  "rock",
+  "sad",
+  "sertanejo",
+  "singer-songwriter",
+  "soul",
+  "spanish",
 ];
 
-export default function TrackSearch(): JSX.Element {
-  const [spotifyId, setSpotifyId] = useState<string>("");
-  const [genre, setGenre] = useState<string>("");
-  const [loading, setLoading] = useState<boolean>(false);
-  const [result, setResult] = useState<PredictionResult | null>(null);
-  const [error, setError] = useState<string | null>(null);
+const initialDraft = loadJson<SearchDraft>(STORAGE_KEYS.searchDraft);
+
+const normalizeSpotifyId = (value: string): string => {
+  const trimmed = value.trim();
+
+  if (!trimmed) {
+    return "";
+  }
+
+  if (trimmed.includes("spotify.com/track/")) {
+    const trackSection = trimmed.split("/track/")[1] ?? "";
+    return trackSection.split("?")[0] ?? "";
+  }
+
+  if (trimmed.startsWith("spotify:track:")) {
+    return trimmed.replace("spotify:track:", "");
+  }
+
+  return trimmed;
+};
+
+export default function TrackSearch({
+  onAnalysisComplete,
+  onTryAlternateRoute,
+}: TrackSearchProps): JSX.Element {
+  const { t } = useI18n();
+  const [spotifyId, setSpotifyId] = useState(initialDraft?.spotifyId ?? "");
+  const [genre, setGenre] = useState(initialDraft?.genre ?? "");
+  const [progressStatus, setProgressStatus] = useState<ProgressStatus>("idle");
+  const [error, setError] = useState<SearchErrorState | null>(null);
+  const progress = useProgressLoop(progressStatus);
+
+  const buildError = (title: string, message: string): SearchError =>
+    Object.assign(new Error(message), { title, message });
+
+  useEffect(() => {
+    saveJson(STORAGE_KEYS.searchDraft, { spotifyId, genre });
+  }, [genre, spotifyId]);
+
+  const canAnalyze = Boolean(spotifyId.trim() && genre && progressStatus !== "loading");
 
   const handleSearch = async () => {
-    if (!spotifyId.trim()) {
-      setError("Ingresa un Spotify ID");
+    const normalizedId = normalizeSpotifyId(spotifyId);
+
+    if (!genre) {
+      setError({
+        title: t("errors.genreRequiredTitle"),
+        message: t("errors.genreRequiredBody"),
+      });
       return;
     }
 
-    setLoading(true);
+    if (!normalizedId) {
+      setError({
+        title: t("errors.spotifySourceTitle"),
+        message: t("errors.spotifySourceBody"),
+      });
+      return;
+    }
+
+    setProgressStatus("loading");
     setError(null);
-    setResult(null);
 
     try {
-      console.log("Iniciando búsqueda del track en ReccoBeats...");
+      const searchResponse = await fetch(`http://localhost:8000/search-track?ids=${normalizedId}`);
+      const searchData = await searchResponse.json();
 
-      // 1️⃣ Llamar a /search-track para obtener trackId de Recco
-      const searchResp = await fetch(
-        `http://localhost:8000/search-track?ids=${spotifyId.trim()}`
-      );
-      const searchData = await searchResp.json();
-      console.log("Respuesta /search-track:", searchData);
-
-      if (!searchResp.ok || searchData.error) {
-        throw new Error(
-          searchData.error || "No se pudo obtener el track de ReccoBeats"
-        );
+      if (!searchResponse.ok || searchData.error) {
+        throw buildError(t("errors.spotifyResolveTitle"), searchData.error || t("errors.spotifyResolveBody"));
       }
 
       const trackId = searchData;
-      console.log("TrackId obtenido:", trackId);
 
       if (!trackId) {
-        throw new Error(
-          "No se ha podido obtener las caracteristicas de esta cancion, intenta con el mp3"
-        );
+        throw buildError(t("errors.spotifyResolveTitle"), t("errors.spotifyResolveBody"));
       }
 
-      // 2️⃣ Llamar a /track-features con el trackId y género
-      console.log("Obteniendo features del track...");
-      const featuresResp = await fetch(
-        `http://localhost:8000/track-features?track_id=${trackId}&genre=${encodeURIComponent(
-          genre
-        )}`
+      const featuresResponse = await fetch(
+        `http://localhost:8000/track-features?track_id=${trackId}&genre=${encodeURIComponent(genre)}`
       );
-      const featuresData = await featuresResp.json();
-      console.log("Respuesta /track-features:", featuresData);
+      const featuresData = await featuresResponse.json();
 
-      if (!featuresResp.ok || featuresData.error) {
-        throw new Error(
-          featuresData.error || "No se pudo obtener las features del track"
-        );
+      if (!featuresResponse.ok || featuresData.error) {
+        throw buildError(t("errors.spotifyFeaturesTitle"), featuresData.error || t("errors.spotifyFeaturesBody"));
       }
 
-      // 3️⃣ Llamar a /predict con las features obtenidas
-      console.log("Enviando features a /predict...");
-      const predictResp = await fetch("http://localhost:8000/predict", {
+      const predictionResponse = await fetch("http://localhost:8000/predict", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ ...featuresData }),
       });
-      const predictData = await predictResp.json();
-      console.log("Respuesta /predict:", predictData);
+      const predictionData = await predictionResponse.json();
 
-      if (!predictResp.ok || predictData.error) {
-        throw new Error(predictData.error || "Error al predecir popularidad");
+      if (!predictionResponse.ok || predictionData.error) {
+        throw buildError(t("errors.predictTitle"), predictionData.error || t("errors.predictBody"));
       }
 
-      setResult(predictData);
+      const prediction = Number(predictionData.prediction);
 
-      // Confeti si predicción > 30
-      if (predictData.prediction && Number(predictData.prediction) > 40) {
-        console.log("Prediccion alta, lanzando confeti!");
+      if (!Number.isFinite(prediction)) {
+        throw buildError(t("errors.predictTitle"), t("errors.predictBody"));
+      }
+
+      const session: AnalysisSession = {
+        route: "search",
+        genre,
+        sourceLabel: normalizedId,
+        sourceValue: normalizedId,
+        prediction,
+        features: predictionData.features as FeatureSet,
+        createdAt: new Date().toISOString(),
+      };
+
+      setProgressStatus("success");
+
+      if (prediction > 40) {
         confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 } });
       }
-    } catch (err: any) {
-      console.error("Error en handleSearch:", err);
-      setError(err.message || "Error desconocido");
-    } finally {
-      setLoading(false);
-      console.log("Búsqueda finalizada");
+
+      window.setTimeout(() => {
+        onAnalysisComplete(session);
+      }, 220);
+    } catch (searchError) {
+      setProgressStatus("error");
+      setError(
+        typeof searchError === "object" && searchError !== null && "title" in searchError
+          ? (searchError as SearchErrorState)
+          : {
+              title: t("errors.networkTitle"),
+              message: searchError instanceof Error ? searchError.message : t("errors.networkBody"),
+            }
+      );
     }
   };
 
   const handleClear = () => {
     setSpotifyId("");
     setGenre("");
-    setResult(null);
     setError(null);
-    console.log("Formulario limpiado");
+    setProgressStatus("idle");
   };
 
-return (
-  <div className="flex justify-center p-6">
-    <div className="w-full max-w-xl">
+  return (
+    <div className="grid gap-6 lg:grid-cols-[1.05fr_0.95fr]">
+      <section className="app-shell-card">
+        <div className="space-y-3">
+          <h2 className="font-display text-3xl font-bold text-app-text sm:text-4xl">{t("search.title")}</h2>
+          <p className="max-w-2xl text-sm leading-7 text-app-muted">{t("search.body")}</p>
+        </div>
 
-      <div className="bg-white p-8 rounded-2xl shadow-lg">
+        <div className="mt-8 space-y-6">
+          <div>
+            <label className="field-label" htmlFor="spotify-track-id">
+              {t("search.source")}
+            </label>
+            <input
+              id="spotify-track-id"
+              type="text"
+              value={spotifyId}
+              onChange={(event) => setSpotifyId(event.target.value)}
+              placeholder={t("search.sourcePlaceholder")}
+              className="field-input mt-3"
+            />
+            <p className="mt-3 text-sm leading-6 text-app-muted">{t("search.sourceBody")}</p>
+          </div>
 
-        <h2 className="text-xl font-bold text-gray-900 mb-6">
-          Buscar canción por Spotify ID
-        </h2>
+          <div>
+            <label className="field-label" htmlFor="spotify-genre">
+              {t("search.genre")}
+            </label>
+            <select
+              id="spotify-genre"
+              value={genre}
+              onChange={(event) => setGenre(event.target.value)}
+              className="field-select mt-3"
+            >
+              <option value="">{t("common.genreSelect")}</option>
+              {genreOptions.map((item) => (
+                <option key={item} value={item}>
+                  {item.replace("-", " ")}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
 
-        {/* Spotify ID */}
-        <label className="block text-sm font-semibold text-gray-700 mb-2">
-          Spotify Track ID
-        </label>
-        <input
-          type="text"
-          value={spotifyId}
-          onChange={(e) => setSpotifyId(e.target.value)}
-          placeholder="Ej: 2EKxmYmUdAVXlaHCnnW13o"
-          className="w-full rounded-lg border border-gray-300 px-4 py-2 mb-5 focus:outline-none focus:ring-2 focus:ring-[#1DB954]"
-        />
+        <div className="mt-8 rounded-[20px] bg-black/30 p-4">
+          <div className="flex items-center justify-between text-xs uppercase tracking-[0.2em] text-app-muted">
+            <span>{t("upload.progress")}</span>
+            <span>
+              {progressStatus === "loading"
+                ? t("upload.status.running")
+                : progressStatus === "success"
+                ? t("upload.status.completed")
+                : progressStatus === "error"
+                ? t("upload.status.failed")
+                : t("upload.status.waiting")}
+            </span>
+          </div>
+          <div className="progress-track mt-4">
+            <div className="progress-fill" style={{ width: `${progress}%` }} />
+            {progressStatus === "loading" && <div className="progress-flow" />}
+          </div>
+          <p className="mt-3 text-sm text-app-muted">
+            {progressStatus === "loading" ? t("upload.progressBodyLoading") : t("upload.progressBodyIdle")}
+          </p>
+        </div>
 
-        {/* Género */}
-        <label className="block text-sm font-semibold text-gray-700 mb-2">
-          Género musical
-        </label>
-        <select
-          value={genre}
-          onChange={(e) => setGenre(e.target.value)}
-          className="w-full rounded-lg border border-gray-300 px-4 py-2 focus:outline-none focus:ring-2 focus:ring-[#1DB954] mb-6"
-        >
-          <option value="">Seleccionar género</option>
-          {genreOptions.map((g) => (
-            <option key={g} value={g}>
-              {g.replace("-", " ")}
-            </option>
-          ))}
-        </select>
+        <div className="mt-8 grid gap-4 sm:grid-cols-3">
+          <div className="soft-card">
+            <p className="soft-label">{t("search.resolve")}</p>
+            <p className="soft-value">{t("search.resolveBody")}</p>
+          </div>
+          <div className="soft-card">
+            <p className="soft-label">{t("search.retrieve")}</p>
+            <p className="soft-value">{t("search.retrieveBody")}</p>
+          </div>
+          <div className="soft-card">
+            <p className="soft-label">{t("search.predict")}</p>
+            <p className="soft-value">{t("search.predictBody")}</p>
+          </div>
+        </div>
 
-        {/* Botones */}
-        <div className="flex gap-4">
+        <div className="action-row mt-8">
           <button
+            type="button"
             onClick={handleSearch}
-            disabled={loading}
-            className="flex-1 bg-[#1DB954] hover:bg-[#169c46] text-white py-2.5 rounded-full font-semibold transition disabled:opacity-60 shadow"
+            disabled={!canAnalyze}
+            className="primary-button disabled:cursor-not-allowed disabled:opacity-50"
           >
-            {loading ? "Analizando..." : "Buscar y predecir"}
+            {progressStatus === "loading" ? t("search.analyzing") : t("search.analyze")}
           </button>
-
-          <button
-            onClick={handleClear}
-            className="px-6 py-2.5 rounded-full border border-gray-300 font-semibold text-gray-700 hover:bg-gray-100 transition"
-          >
-            Limpiar
+          <button type="button" onClick={handleClear} className="secondary-button">
+            {t("search.clear")}
           </button>
         </div>
 
+        {!genre && <p className="mt-4 text-sm text-app-muted">{t("upload.genreRequiredHint")}</p>}
+
         {error && (
-          <p className="mt-4 text-sm text-red-600 font-medium">
-            {error}
-          </p>
+          <div className="error-panel mt-5">
+            <p className="error-title">{error.title}</p>
+            <p className="error-copy">{error.message}</p>
+            <button type="button" onClick={onTryAlternateRoute} className="error-action">
+              {t("search.tryAlternate")}
+            </button>
+          </div>
         )}
+      </section>
 
-        {/* Resultado */}
-        {result && (
-  <div className="mt-8 p-5 rounded-2xl bg-[#121212] text-white shadow-lg">
-    <p className="text-lg font-semibold">
-      Predicción de popularidad
-    </p>
+      <aside className="space-y-6">
+        <div className="glass-panel p-6">
+          <span className="eyebrow">{t("search.tips")}</span>
+          <ul className="mt-5 space-y-3 text-sm leading-7 text-app-muted">
+            <li>{t("search.tip1")}</li>
+            <li>{t("search.tip2")}</li>
+            <li>{t("search.tip3")}</li>
+          </ul>
+        </div>
 
-    <p className="text-3xl font-bold text-[#1DB954] mt-1">
-      {Number.isFinite(Number(result.prediction)) 
-        ? Math.round(Number(result.prediction)) 
-        : String(result.prediction)}
-    </p>
-
-    <details className="mt-4">
-      <summary className="cursor-pointer text-sm text-gray-300">
-        Ver features técnicos
-      </summary>
-      <pre className="text-xs mt-3 overflow-auto max-h-48 bg-black/40 p-3 rounded">
-        {JSON.stringify(result.features ?? {}, null, 2)}
-      </pre>
-    </details>
-  </div>
-)}
-
-
-      </div>
+        <div className="result-panel">
+          <p className="field-label">{t("upload.flowChecklist")}</p>
+          <ul className="mt-4 space-y-3 text-sm leading-7 text-app-muted">
+            <li>1. {t("search.resolveBody")}.</li>
+            <li>2. {t("search.retrieveBody")}.</li>
+            <li>3. {t("search.predictBody")}.</li>
+            <li>4. {t("results.optimize")}.</li>
+          </ul>
+        </div>
+      </aside>
     </div>
-  </div>
-);
-
-
+  );
 }

@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Sonic Architect | Help &amp; Limitations</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&amp;family=Inter:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "primary-container": "#00f4fe",
+              "on-secondary-container": "#fff5fc",
+              "on-error-container": "#ffa8a3",
+              "outline-variant": "#44484f",
+              "background": "#0a0e14",
+              "surface-bright": "#262c36",
+              "on-error": "#490006",
+              "tertiary-fixed": "#2efd7c",
+              "surface-container-low": "#0f141a",
+              "on-tertiary-fixed-variant": "#00662c",
+              "on-primary-fixed": "#004346",
+              "on-primary-fixed-variant": "#006266",
+              "inverse-surface": "#f8f9ff",
+              "tertiary-fixed-dim": "#00ee70",
+              "on-tertiary-container": "#005b26",
+              "on-background": "#f1f3fc",
+              "tertiary-container": "#2efd7c",
+              "error-container": "#9f0519",
+              "surface-container": "#151a21",
+              "secondary": "#d873ff",
+              "on-tertiary": "#00652b",
+              "secondary-fixed": "#f1c1ff",
+              "surface-container-lowest": "#000000",
+              "on-primary-container": "#00575b",
+              "primary": "#a1faff",
+              "tertiary-dim": "#00ee70",
+              "on-surface": "#f1f3fc",
+              "error": "#ff716c",
+              "surface-container-high": "#1b2028",
+              "on-secondary-fixed-variant": "#8400b2",
+              "surface-tint": "#a1faff",
+              "primary-fixed": "#00f4fe",
+              "surface-variant": "#20262f",
+              "on-secondary-fixed": "#580078",
+              "secondary-fixed-dim": "#ebadff",
+              "secondary-dim": "#bc00fb",
+              "primary-fixed-dim": "#00e5ee",
+              "on-secondary": "#39004f",
+              "tertiary": "#a7ffb3",
+              "secondary-container": "#9900ce",
+              "outline": "#72757d",
+              "surface-container-highest": "#20262f",
+              "inverse-primary": "#006a6e",
+              "surface": "#0a0e14",
+              "on-primary": "#006165",
+              "on-surface-variant": "#a8abb3",
+              "primary-dim": "#00e5ee",
+              "error-dim": "#d7383b",
+              "surface-dim": "#0a0e14",
+              "on-tertiary-fixed": "#00461c",
+              "inverse-on-surface": "#51555d"
+            },
+            fontFamily: {
+              "headline": ["Space Grotesk"],
+              "body": ["Inter"],
+              "label": ["Inter"]
+            },
+            borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px"},
+          },
+        },
+      }
+    </script>
+<style>
+        body { font-family: 'Inter', sans-serif; }
+        h1, h2, h3, .font-space-grotesk { font-family: 'Space Grotesk', sans-serif; }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+    </style>
+</head>
+<body class="bg-background text-on-background min-h-screen flex flex-col">
+<!-- TopNavBar -->
+<nav class="fixed top-0 w-full z-50 bg-[#0a0e14]/80 backdrop-blur-xl shadow-[0_20px_40px_rgba(0,245,255,0.05)]">
+<div class="flex justify-between items-center px-8 py-4 w-full max-w-screen-2xl mx-auto">
+<div class="text-2xl font-black tracking-tight text-[#00F5FF] uppercase font-space-grotesk">
+                Sonic Architect
+            </div>
+<div class="hidden md:flex items-center gap-8 font-inter text-sm">
+<a class="text-[#a8abb3] hover:text-[#00F5FF] transition-colors" href="#">Home</a>
+<a class="text-[#a8abb3] hover:text-[#00F5FF] transition-colors" href="#">Analyze</a>
+<a class="text-[#a8abb3] hover:text-[#00F5FF] transition-colors" href="#">Optimize</a>
+<a class="text-[#a8abb3] hover:text-[#00F5FF] transition-colors" href="#">How It Works</a>
+<a class="text-[#00F5FF] border-b-2 border-[#00F5FF] pb-1 font-bold" href="#">Help</a>
+</div>
+<div class="flex items-center gap-4">
+<div class="relative group hidden lg:block">
+<input class="bg-surface-container-lowest border-none rounded-xl py-2 pl-4 pr-10 text-sm focus:ring-1 focus:ring-primary-container w-64 transition-all" placeholder="Search documentation..." type="text"/>
+<span class="material-symbols-outlined absolute right-3 top-2 text-on-surface-variant text-sm" data-icon="search">search</span>
+</div>
+<button class="hover:bg-[#1b2028] transition-all duration-300 p-2 rounded-full scale-95 active:scale-90">
+<span class="material-symbols-outlined text-[#00F5FF]" data-icon="account_circle">account_circle</span>
+</button>
+</div>
+</div>
+</nav>
+<main class="pt-28 pb-20 px-6 max-w-7xl mx-auto w-full flex-grow">
+<!-- Hero Section -->
+<header class="mb-16">
+<h1 class="text-6xl font-black font-headline tracking-tighter mb-4 text-primary">
+                RESOURCES &amp; <br/>LIMITATIONS
+            </h1>
+<p class="text-on-surface-variant max-w-2xl text-lg leading-relaxed">
+                Technical documentation, model scope definitions, and academic frameworks for the Sonic Architect project at Universidad EAFIT.
+            </p>
+</header>
+<!-- Searchable List & Bento Grid -->
+<div class="grid grid-cols-1 md:grid-cols-12 gap-6 mb-16">
+<!-- Quick Links (Sidebar Desktop) -->
+<div class="md:col-span-3 space-y-2">
+<h3 class="text-xs font-bold font-label uppercase tracking-widest text-secondary mb-4">Documentation</h3>
+<nav class="flex flex-col gap-1">
+<a class="p-3 rounded-lg bg-surface-container-high text-primary flex items-center gap-3 font-medium transition-all" href="#model-scope">
+<span class="material-symbols-outlined text-xl" data-icon="biotech">biotech</span>
+                        Model Scope
+                    </a>
+<a class="p-3 rounded-lg hover:bg-surface-container-low text-on-surface-variant flex items-center gap-3 transition-all" href="#archetypes">
+<span class="material-symbols-outlined text-xl" data-icon="groups">groups</span>
+                        User Archetypes
+                    </a>
+<a class="p-3 rounded-lg hover:bg-surface-container-low text-on-surface-variant flex items-center gap-3 transition-all" href="#faq">
+<span class="material-symbols-outlined text-xl" data-icon="quiz">quiz</span>
+                        General FAQ
+                    </a>
+<a class="p-3 rounded-lg hover:bg-surface-container-low text-on-surface-variant flex items-center gap-3 transition-all" href="#academic">
+<span class="material-symbols-outlined text-xl" data-icon="school">school</span>
+                        Academic Report
+                    </a>
+</nav>
+<div class="mt-8 p-6 rounded-xl bg-surface-container-low border-l-4 border-secondary/30">
+<p class="text-xs text-on-surface-variant uppercase font-bold tracking-widest mb-2">Technical Support</p>
+<p class="text-sm text-on-surface-variant mb-4">Need further assistance or found a bug?</p>
+<a class="text-sm font-bold text-secondary flex items-center gap-2 hover:gap-3 transition-all" href="#">
+                        Contact Academic Team <span class="material-symbols-outlined text-sm" data-icon="arrow_forward">arrow_forward</span>
+</a>
+</div>
+</div>
+<!-- Content Area -->
+<div class="md:col-span-9 space-y-12">
+<!-- Model Scope (Critical Section) -->
+<section class="bg-surface-container-high rounded-xl p-8 overflow-hidden relative" id="model-scope">
+<div class="absolute top-0 right-0 p-8 opacity-10">
+<span class="material-symbols-outlined text-9xl text-primary" data-icon="visibility_off" style="font-variation-settings: 'FILL' 1;">visibility_off</span>
+</div>
+<h2 class="text-3xl font-bold font-headline mb-6 flex items-center gap-3">
+<span class="text-primary material-symbols-outlined" data-icon="warning">warning</span>
+                        Model Scope &amp; Critical Exclusions
+                    </h2>
+<div class="grid grid-cols-1 sm:grid-cols-2 gap-8 relative z-10">
+<div class="space-y-4">
+<h3 class="font-bold text-lg text-primary-container">What we analyze</h3>
+<ul class="space-y-3 text-on-surface-variant text-sm">
+<li class="flex items-start gap-2">
+<span class="material-symbols-outlined text-tertiary text-sm mt-1" data-icon="check_circle">check_circle</span>
+                                    Acoustic features (Loudness, Tempo, Energy)
+                                </li>
+<li class="flex items-start gap-2">
+<span class="material-symbols-outlined text-tertiary text-sm mt-1" data-icon="check_circle">check_circle</span>
+                                    Structural complexity and melodic entropy
+                                </li>
+<li class="flex items-start gap-2">
+<span class="material-symbols-outlined text-tertiary text-sm mt-1" data-icon="check_circle">check_circle</span>
+                                    Release timing vs. market saturation trends
+                                </li>
+</ul>
+</div>
+<div class="space-y-4">
+<h3 class="font-bold text-lg text-error">What we DO NOT include</h3>
+<ul class="space-y-3 text-on-surface-variant text-sm">
+<li class="flex items-start gap-2">
+<span class="material-symbols-outlined text-error text-sm mt-1" data-icon="cancel">cancel</span>
+<strong>Marketing &amp; Ad Spend:</strong> The tool ignores budget inputs.
+                                </li>
+<li class="flex items-start gap-2">
+<span class="material-symbols-outlined text-error text-sm mt-1" data-icon="cancel">cancel</span>
+<strong>Artist Fame/Legacy:</strong> Analysis is purely content-based.
+                                </li>
+<li class="flex items-start gap-2">
+<span class="material-symbols-outlined text-error text-sm mt-1" data-icon="cancel">cancel</span>
+<strong>Editorial Playlisting:</strong> No prediction for Spotify curators.
+                                </li>
+</ul>
+</div>
+</div>
+<div class="mt-8 pt-8 border-t border-outline-variant/20">
+<div class="bg-surface-container-lowest rounded-lg p-4 flex items-center gap-4">
+<span class="material-symbols-outlined text-primary-fixed-dim" data-icon="info">info</span>
+<p class="text-xs italic text-on-surface-variant leading-relaxed">
+                                Sonic Architect is a predictive heuristic tool based on historical acoustic data. It provides mathematical probability, not commercial guarantees.
+                            </p>
+</div>
+</div>
+</section>
+<!-- Archetypes Section -->
+<section id="archetypes">
+<h2 class="text-2xl font-bold font-headline mb-8">User Archetypes</h2>
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+<!-- Archetype 1 -->
+<div class="bg-surface-container-low p-6 rounded-xl border-t-2 border-primary/20">
+<span class="material-symbols-outlined text-primary mb-4" data-icon="headset">headset</span>
+<h4 class="font-bold mb-2">Independent Artist</h4>
+<p class="text-sm text-on-surface-variant leading-relaxed">Focuses on optimizing song structures for maximum initial engagement and retention.</p>
+</div>
+<!-- Archetype 2 -->
+<div class="bg-surface-container-low p-6 rounded-xl border-t-2 border-secondary/20">
+<span class="material-symbols-outlined text-secondary mb-4" data-icon="settings_input_component">settings_input_component</span>
+<h4 class="font-bold mb-2">Music Producer</h4>
+<p class="text-sm text-on-surface-variant leading-relaxed">Uses algorithmic feedback to fine-tune sound design and technical energy levels.</p>
+</div>
+<!-- Archetype 3 -->
+<div class="bg-surface-container-low p-6 rounded-xl border-t-2 border-tertiary/20">
+<span class="material-symbols-outlined text-tertiary mb-4" data-icon="monitoring">monitoring</span>
+<h4 class="font-bold mb-2">A&amp;R Scout</h4>
+<p class="text-sm text-on-surface-variant leading-relaxed">Evaluates demos based on genre-specific success benchmarks and viral potential.</p>
+</div>
+</div>
+</section>
+<!-- FAQ Section -->
+<section id="faq">
+<h2 class="text-2xl font-bold font-headline mb-8">Detailed FAQ</h2>
+<div class="space-y-4">
+<details class="group bg-surface-container-low rounded-xl overflow-hidden" open="">
+<summary class="flex justify-between items-center p-6 cursor-pointer list-none font-bold text-on-surface group-open:text-primary transition-colors">
+                                How accurate is the Success Probability score?
+                                <span class="material-symbols-outlined transition-transform group-open:rotate-180" data-icon="expand_more">expand_more</span>
+</summary>
+<div class="px-6 pb-6 text-sm text-on-surface-variant leading-relaxed">
+                                Our model achieves an 84% accuracy rate when predicting streaming growth within the first 3 months, based on the validation set from our 2023 dataset. However, "black swan" viral events cannot be predicted.
+                            </div>
+</details>
+<details class="group bg-surface-container-low rounded-xl overflow-hidden">
+<summary class="flex justify-between items-center p-6 cursor-pointer list-none font-bold text-on-surface group-open:text-primary transition-colors">
+                                What genres are best supported by the AI?
+                                <span class="material-symbols-outlined transition-transform group-open:rotate-180" data-icon="expand_more">expand_more</span>
+</summary>
+<div class="px-6 pb-6 text-sm text-on-surface-variant leading-relaxed">
+                                The algorithm is currently optimized for Pop, Urban (Reggaeton/Trap), EDM, and Indie Rock. Classical and Jazz models are currently in beta under our specialized academic branch.
+                            </div>
+</details>
+<details class="group bg-surface-container-low rounded-xl overflow-hidden">
+<summary class="flex justify-between items-center p-6 cursor-pointer list-none font-bold text-on-surface group-open:text-primary transition-colors">
+                                Why is my track flagged for "Low Entropy"?
+                                <span class="material-symbols-outlined transition-transform group-open:rotate-180" data-icon="expand_more">expand_more</span>
+</summary>
+<div class="px-6 pb-6 text-sm text-on-surface-variant leading-relaxed">
+                                Low entropy suggests that the musical progression is highly predictable. While this is common in some pop sub-genres, our model suggests it may lead to lower long-term listener retention in competitive playlists.
+                            </div>
+</details>
+</div>
+</section>
+<!-- Academic Report Section -->
+<section class="relative group" id="academic">
+<div class="absolute -inset-1 bg-gradient-to-r from-primary/20 to-secondary/20 rounded-2xl blur opacity-25 group-hover:opacity-100 transition duration-1000 group-hover:duration-200"></div>
+<div class="relative bg-surface-container-high rounded-xl p-10 flex flex-col md:flex-row items-center gap-8">
+<div class="flex-shrink-0 w-32 h-32 bg-surface-container-lowest rounded-lg flex items-center justify-center border border-outline-variant/10">
+<span class="material-symbols-outlined text-5xl text-primary" data-icon="menu_book">menu_book</span>
+</div>
+<div class="flex-grow">
+<span class="inline-block px-3 py-1 rounded-full bg-primary/10 text-primary text-[10px] font-bold uppercase tracking-widest mb-4">Academic Resource</span>
+<h3 class="text-2xl font-bold mb-3 font-headline">Full Technical Report (2024)</h3>
+<p class="text-on-surface-variant text-sm leading-relaxed mb-6">
+                                Deep dive into the methodology, data sampling (N=50,000 tracks), and neural network architecture used to build the Sonic Architect. Published by the Music Engineering Department at Universidad EAFIT.
+                            </p>
+<div class="flex flex-wrap gap-4">
+<button class="px-6 py-3 bg-primary text-on-primary font-bold rounded-lg text-sm flex items-center gap-2 hover:bg-primary-container transition-all">
+<span class="material-symbols-outlined text-sm" data-icon="download">download</span>
+                                    Download PDF (4.2 MB)
+                                </button>
+<button class="px-6 py-3 border border-outline text-on-surface font-bold rounded-lg text-sm hover:bg-surface-variant transition-all">
+                                    View Citations
+                                </button>
+</div>
+</div>
+</div>
+</section>
+</div>
+</div>
+<!-- Waveform Progress Bar Decorator -->
+<div class="w-full h-1 bg-surface-variant rounded-full overflow-hidden mb-20">
+<div class="h-full w-2/3 bg-gradient-to-r from-secondary to-primary shadow-[0_0_15px_rgba(0,244,254,0.3)]"></div>
+</div>
+</main>
+<!-- Footer -->
+<footer class="bg-[#0f141a] w-full py-12 px-8 mt-auto tonal-shift">
+<div class="flex flex-col md:flex-row justify-between items-center gap-6 w-full max-w-screen-2xl mx-auto">
+<div class="font-space-grotesk font-bold text-[#a8abb3] flex flex-col gap-1">
+<span class="text-lg">SONIC ARCHITECT</span>
+<span class="text-xs font-inter font-normal text-outline">v2.4.0 Experimental Build</span>
+</div>
+<div class="flex flex-wrap justify-center gap-8 font-inter text-xs tracking-wider uppercase">
+<a class="text-[#a8abb3] hover:text-[#00F5FF] transition-colors" href="#">Project Info</a>
+<a class="text-[#a8abb3] hover:text-[#00F5FF] transition-colors" href="#">Privacy Policy</a>
+<a class="text-[#a8abb3] hover:text-[#00F5FF] transition-colors" href="#">Terms of Service</a>
+<a class="text-[#00F5FF] underline opacity-100" href="#">Contact Support</a>
+</div>
+<div class="text-[#a8abb3] font-inter text-xs tracking-wider uppercase opacity-80">
+                © 2024 Sonic Architect | EAFIT University
+            </div>
+</div>
+</footer>
+</body></html>

@@ -1,25 +1,30 @@
-import React, { useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import confetti from "canvas-confetti";
+import { useI18n } from "../../i18n";
+import { AnalysisSession, FeatureSet, OptimizerSession } from "../../types/analysis";
+import { saveOptimizerSession } from "../../utils/storage";
 
-interface Features {
-  acousticness: number;
-  danceability: number;
-  energy: number;
-  instrumentalness: number;
-  liveness: number;
-  loudness: number;
-  mode: number;
-  speechiness: number;
-  tempo: number;
-  time_signature: number;
-  valence: number;
-  duration_ms: number;
-  key: number;
-  genre: string;
+interface SongOptimizerWizardProps {
+  analysisSession: AnalysisSession | null;
+  previousOptimization: OptimizerSession | null;
+  onGoToUpload: () => void;
+  onGoToSearch: () => void;
+  onOptimizationComplete: (session: OptimizerSession) => void;
 }
 
-// Configuración de sliders
-const featureSliders: { key: keyof Features; label: string; min: number; max: number; step?: number; percentage?: boolean }[] = [
+interface OptimizationErrorState {
+  title: string;
+  message: string;
+}
+
+const featureSliders: {
+  key: keyof FeatureSet;
+  label: string;
+  min: number;
+  max: number;
+  step?: number;
+  percentage?: boolean;
+}[] = [
   { key: "acousticness", label: "Acousticness", min: 0, max: 1, step: 0.01, percentage: true },
   { key: "danceability", label: "Danceability", min: 0, max: 1, step: 0.01, percentage: true },
   { key: "energy", label: "Energy", min: 0, max: 1, step: 0.01, percentage: true },
@@ -35,70 +40,104 @@ const featureSliders: { key: keyof Features; label: string; min: number; max: nu
   { key: "key", label: "Key", min: 0, max: 11, step: 1 },
 ];
 
-// Lista de géneros completos
-const genreOptions = [
-  "alt-rock", "blues", "chill", "classical",
-  "country", "dance", "edm", "electro",
-  "electronic", "emo", "folk", "french",
-  "funk", "german", "hard-rock", "hardcore",
-  "hip-hop", "house", "indie-pop", "jazz",
-  "k-pop", "metal", "pop", "punk",
-  "rock", "sad", "sertanejo", "singer-songwriter",
-  "soul", "spanish"
-];
+const formatValue = (value: number, percentage?: boolean): string => {
+  if (percentage) {
+    return `${Math.round(value * 100)}%`;
+  }
 
-export default function SongOptimizerWizard(): JSX.Element {
-  const [features, setFeatures] = useState<Features>({
-    acousticness: 0.5,
-    danceability: 0.5,
-    energy: 0.5,
-    instrumentalness: 0,
-    liveness: 0,
-    loudness: -20,
-    mode: 1,
-    speechiness: 0,
-    tempo: 120,
-    time_signature: 4,
-    valence: 0.5,
-    duration_ms: 180000,
-    key: 0,
-    genre: "alt-rock", // solo la parte real
-  });
+  if (Number.isInteger(value)) {
+    return `${value}`;
+  }
 
-  const [locks, setLocks] = useState<Record<keyof Features, boolean>>(
-    Object.fromEntries(Object.keys(features).map((k) => [k, k === "genre"])) as Record<keyof Features, boolean>
+  return value.toFixed(2);
+};
+
+export default function SongOptimizerWizard({
+  analysisSession,
+  previousOptimization,
+  onGoToUpload,
+  onGoToSearch,
+  onOptimizationComplete,
+}: SongOptimizerWizardProps): JSX.Element {
+  const { t } = useI18n();
+  const baseFeatures = analysisSession?.features ?? null;
+  const [features, setFeatures] = useState<FeatureSet | null>(baseFeatures);
+  const [locks, setLocks] = useState<Record<string, boolean>>(
+    Object.fromEntries(Object.keys(baseFeatures ?? {}).map((key) => [key, key === "genre"])) as Record<string, boolean>
   );
+  const [result, setResult] = useState<OptimizerSession | null>(previousOptimization);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<OptimizationErrorState | null>(null);
+  const [generatedBeatUrl, setGeneratedBeatUrl] = useState<string | null>(null);
+  const [beatLoading, setBeatLoading] = useState(false);
+  const [beatError, setBeatError] = useState<string | null>(null);
 
-  const [predictionResult, setPredictionResult] = useState<number | null>(null);
-  const [loading, setLoading] = useState<boolean>(false);
+  useEffect(() => {
+    console.debug("SongOptimizerWizard state", {
+      analysisSession,
+      previousOptimization,
+      result,
+    });
+  }, [analysisSession, previousOptimization, result]);
 
-  // Cambiar valor de slider
-  const handleSliderChange = (key: keyof Features, value: number) => {
-    setFeatures((prev) => ({ ...prev, [key]: value }));
+  const changedParameters = useMemo(() => {
+    if (!analysisSession || !result) {
+      return [];
+    }
+
+    return Object.entries(result.optimizedFeatures)
+      .filter(([key, value]) => analysisSession.features[key] !== value)
+      .slice(0, 6);
+  }, [analysisSession, result]);
+
+  if (!analysisSession || !features) {
+    return (
+      <section className="space-y-8">
+        <div className="section-heading">
+          <div>
+            <h1 className="font-display text-4xl font-bold text-app-text sm:text-5xl">{t("optimize.emptyTitle")}</h1>
+          </div>
+          <p className="max-w-2xl text-base leading-7 text-app-muted">{t("optimize.emptyBody")}</p>
+        </div>
+
+        <div className="grid gap-6 md:grid-cols-2">
+          <button type="button" onClick={onGoToUpload} className="route-card">
+            <h2 className="route-title">{t("optimize.fromUpload")}</h2>
+            <p className="route-copy">{t("upload.body")}</p>
+          </button>
+          <button type="button" onClick={onGoToSearch} className="route-card route-card-compact">
+            <h2 className="route-title">{t("optimize.fromSearch")}</h2>
+            <p className="route-copy">{t("search.body")}</p>
+          </button>
+        </div>
+      </section>
+    );
+  }
+
+  const handleSliderChange = (key: keyof FeatureSet, value: number) => {
+    setFeatures((current) => (current ? { ...current, [key]: value } : current));
   };
 
-  // Toggle lock
-  const toggleLock = (key: keyof Features) => {
-    setLocks((prev) => ({ ...prev, [key]: !prev[key] }));
+  const toggleLock = (key: string) => {
+    setLocks((current) => ({ ...current, [key]: !current[key] }));
   };
 
-  // Cambio de género
-  const handleGenreChange = (value: string) => {
-    setFeatures((prev) => ({ ...prev, genre: value }));
+  const buildBeatPayload = (): FeatureSet => {
+    return (result?.optimizedFeatures ?? features) as FeatureSet;
   };
 
-  // Optimizar
-  const handleOptimize = async () => {
-    setLoading(true);
+  const handleGenerateBeat = async () => {
+    setBeatLoading(true);
+    setBeatError(null);
+    setGeneratedBeatUrl(null);
+
     try {
       const payload = {
-        features: features,
-        locked_features: Object.entries(locks)
-          .filter(([_, locked]) => locked)
-          .map(([k]) => k)
+        features: buildBeatPayload(),
+        duration_seconds: 15,
       };
 
-      const response = await fetch("http://localhost:8000/wizard-optimize", {
+      const response = await fetch("http://localhost:8000/generate-beat-base", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
@@ -106,140 +145,229 @@ export default function SongOptimizerWizard(): JSX.Element {
 
       const data = await response.json();
 
-      if (data.predicted_popularity !== undefined) {
-        setPredictionResult(data.predicted_popularity);
-        if (data.predicted_popularity > 40) {
-          confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 } });
-        }
+      if (!response.ok || !data.track_url) {
+        throw new Error(data.error || t("errors.beatGenerationBody"));
       }
 
-      if (data.optimized_features) {
-        const roundedFeatures = {
-            ...data.optimized_features,
-            duration_ms: Math.round(data.optimized_features.duration_ms),
-        };
-        setFeatures(roundedFeatures);
+      setGeneratedBeatUrl(data.track_url);
+      console.info("Generated AI beat prompt:", data.prompt ?? "n/a");
+    } catch (generationError) {
+      setBeatError(
+        generationError instanceof Error ? generationError.message : t("errors.beatGenerationBody")
+      );
+    } finally {
+      setBeatLoading(false);
+    }
+  };
+
+  const handleOptimize = async () => {
+    setLoading(true);
+    setError(null);
+
+    try {
+      const payload = {
+        features,
+        locked_features: Object.entries(locks)
+          .filter(([, locked]) => locked)
+          .map(([key]) => key),
+      };
+
+      const response = await fetch("http://localhost:8000/wizard-optimize", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const data = await response.json();
+
+      if (!response.ok || data.error || data.predicted_popularity === undefined || !data.optimized_features) {
+        throw new Error(data.error || t("errors.optimizeBody"));
       }
 
-    } catch (err) {
-      console.error("Error optimizing:", err);
+      const nextResult: OptimizerSession = {
+        originalPrediction: analysisSession.prediction,
+        optimizedPrediction: Number(data.predicted_popularity),
+        optimizedFeatures: {
+          ...data.optimized_features,
+          duration_ms: Math.round(data.optimized_features.duration_ms),
+        },
+        updatedAt: new Date().toISOString(),
+      };
+
+      setFeatures(nextResult.optimizedFeatures);
+      setResult(nextResult);
+      saveOptimizerSession(nextResult);
+      onOptimizationComplete(nextResult);
+
+      if (nextResult.optimizedPrediction > 40) {
+        confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 } });
+      }
+    } catch (optimizationError) {
+      setError({
+        title: t("errors.optimizeTitle"),
+        message: optimizationError instanceof Error ? optimizationError.message : t("errors.optimizeBody"),
+      });
     } finally {
       setLoading(false);
     }
   };
 
   return (
-  <div className="flex justify-center p-6">
-    <div className="w-full max-w-6xl flex gap-8">
+    <div className="grid gap-6 lg:grid-cols-[0.7fr_1.3fr]">
+      <aside className="space-y-6">
+        <div className="glass-panel p-6">
+          <h2 className="mt-4 font-display text-3xl font-bold text-app-text">{t("optimize.wizardSetup")}</h2>
+          <p className="mt-4 text-sm leading-7 text-app-muted">{t("optimize.wizardBody")}</p>
+        </div>
 
-      {/* FORMULARIO */}
-      <div className="relative flex-1 bg-white p-8 rounded-2xl shadow-lg">
+        <div className="result-panel">
+          <p className="field-label">{t("optimize.estimatedScore")}</p>
+          <p className="mt-4 font-display text-6xl font-bold text-app-primary">
+            {result ? Math.round(result.optimizedPrediction) : "--"}
+          </p>
+          <p className="mt-2 text-sm leading-6 text-app-muted">
+            {result
+              ? `${Math.round(result.originalPrediction)} -> ${Math.round(result.optimizedPrediction)}`
+              : analysisSession.sourceLabel}
+          </p>
+        </div>
 
-        {loading && (
-          <div className="absolute inset-0 bg-white/70 flex items-center justify-center z-10 rounded-2xl">
-            <div className="animate-spin rounded-full h-12 w-12 border-t-4 border-[#1DB954] border-b-4"></div>
+        {result && (
+          <div className="soft-panel">
+            <h3 className="mt-4 font-display text-2xl font-bold text-app-text">{t("common.completed")}</h3>
+            <ul className="mt-5 space-y-3 text-sm leading-7 text-app-muted">
+              {changedParameters.length > 0 ? (
+                changedParameters.map(([key, value]) => (
+                  <li key={key}>
+                    {key}: {String(analysisSession.features[key])} {"->"} {String(value)}
+                  </li>
+                ))
+              ) : (
+                <li>{t("optimize.body")}</li>
+              )}
+            </ul>
           </div>
         )}
 
-        <h2 className="text-xl font-bold text-gray-900 mb-6">
-          Optimizar canción
-        </h2>
+        {error && (
+          <div className="error-panel">
+            <p className="error-title">{error.title}</p>
+            <p className="error-copy">{error.message}</p>
+          </div>
+        )}
+      </aside>
 
-        <div className="space-y-5">
-          {featureSliders.map((f) => (
-            <div key={f.key} className="flex items-center gap-4">
-              <label className="w-40 text-sm font-medium text-gray-700">
-                {f.label}
-              </label>
+      <section className="app-shell-card relative">
+        {loading && (
+          <div className="absolute inset-0 z-10 flex items-center justify-center rounded-[32px] bg-app/70 backdrop-blur-sm">
+            <div className="flex flex-col items-center gap-4">
+              <div className="h-14 w-14 animate-spin rounded-full border-4 border-app-primary/30 border-t-app-primary" />
+              <p className="text-sm uppercase tracking-[0.2em] text-app-muted">{t("optimize.finding")}</p>
+            </div>
+          </div>
+        )}
+
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <h2 className="mt-3 font-display text-3xl font-bold text-app-text">{t("optimize.controls")}</h2>
+          </div>
+          <div className="rounded-full bg-white/[0.05] px-4 py-2 text-xs uppercase tracking-[0.22em] text-app-muted">
+            {t("optimize.lockPrompt")}
+          </div>
+        </div>
+
+        <div className="mt-8 rounded-[24px] bg-white/[0.04] p-5">
+          <label className="field-label" htmlFor="optimizer-genre">
+            {t("upload.genre")}
+          </label>
+          <div className="mt-3 flex flex-col gap-3 sm:flex-row">
+            <input id="optimizer-genre" value={String(features.genre)} readOnly className="field-input sm:flex-1" />
+            <button
+              type="button"
+              onClick={() => toggleLock("genre")}
+              className={`rounded-full px-4 py-3 text-sm font-semibold transition ${
+                locks.genre ? "bg-app-primary text-app-ink" : "bg-white/5 text-app-text"
+              }`}
+            >
+              {locks.genre ? t("common.locked") : t("common.free")}
+            </button>
+          </div>
+        </div>
+
+        <div className="mt-6 grid gap-5 md:grid-cols-2">
+          {featureSliders.map((feature) => (
+            <div key={feature.key} className="rounded-[24px] bg-black/25 p-5">
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <p className="field-label">{feature.label}</p>
+                  <p className="mt-2 text-lg font-semibold text-app-text">
+                    {formatValue(Number(features[feature.key]), feature.percentage)}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => toggleLock(String(feature.key))}
+                  className={`rounded-full px-3 py-2 text-xs font-semibold uppercase tracking-[0.18em] transition ${
+                    locks[String(feature.key)] ? "bg-white/10 text-app-muted" : "bg-app-primary text-app-ink"
+                  }`}
+                >
+                  {locks[String(feature.key)] ? t("common.locked") : t("common.free")}
+                </button>
+              </div>
 
               <input
                 type="range"
-                min={f.min}
-                max={f.max}
-                step={f.step || 0.01}
-                value={features[f.key]}
-                onChange={(e) =>
-                  handleSliderChange(f.key, Number(e.target.value))
-                }
-                className="flex-1 accent-[#1DB954]"
+                min={feature.min}
+                max={feature.max}
+                step={feature.step ?? 0.01}
+                value={Number(features[feature.key])}
+                onChange={(event) => handleSliderChange(feature.key, Number(event.target.value))}
+                className="mt-5 h-2 w-full cursor-pointer appearance-none rounded-full bg-white/10 accent-app-primary"
               />
 
-              <span className="w-14 text-sm text-gray-600 text-right">
-                {f.percentage
-                  ? `${(Number(features[f.key]) * 100).toFixed(0)}%`
-                  : features[f.key]}
-              </span>
-
-              <button
-                onClick={() => toggleLock(f.key)}
-                className="text-lg"
-              >
-                {locks[f.key] ? "🔒" : "🔓"}
-              </button>
+              <div className="mt-3 flex items-center justify-between text-xs uppercase tracking-[0.18em] text-app-muted">
+                <span>{feature.min}</span>
+                <span>{feature.max}</span>
+              </div>
             </div>
           ))}
         </div>
 
-        {/* Género */}
-        <div className="flex items-center gap-4 mt-6">
-          <label className="w-40 text-sm font-semibold text-gray-700">
-            Género musical
-          </label>
-
-          <select
-            value={`genre_${features.genre}`}
-            onChange={(e) =>
-              handleGenreChange(e.target.value.replace("genre_", ""))
-            }
-            className="flex-1 rounded-lg border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#1DB954]"
+        <div className="mt-8 grid gap-4 sm:grid-cols-[1fr_auto]">
+          <button type="button" onClick={handleOptimize} disabled={loading || beatLoading} className="primary-button disabled:opacity-60">
+            {loading ? t("optimize.running") : t("optimize.run")}
+          </button>
+          <button
+            type="button"
+            onClick={handleGenerateBeat}
+            disabled={loading || beatLoading}
+            className="secondary-button disabled:opacity-60"
           >
-            {genreOptions.map((g) => (
-              <option key={g} value={g}>
-                {g.replace("genre_", "").replace("-", " ")}
-              </option>
-            ))}
-          </select>
-
-          <span className="text-lg">🔒</span>
+            {beatLoading ? t("optimize.beatGenerating") : t("optimize.generateBeat")}
+          </button>
         </div>
 
-        {/* Botón optimizar */}
-        <button
-          onClick={handleOptimize}
-          disabled={loading}
-          className="mt-8 w-full bg-[#1DB954] hover:bg-[#169c46] text-white py-3 rounded-full font-semibold transition shadow disabled:opacity-60"
-        >
-          {loading ? "Optimizando..." : "Optimizar canción"}
-        </button>
-      </div>
+        {beatError && (
+          <div className="error-panel mt-6">
+            <p className="error-title">{t("errors.beatGenerationTitle")}</p>
+            <p className="error-copy">{beatError}</p>
+          </div>
+        )}
 
-      {/* RESULTADO */}
-      <div className="w-1/3 bg-white p-8 rounded-2xl shadow-lg flex flex-col items-center justify-center">
+        {generatedBeatUrl && (
+          <div className="mt-6 rounded-[24px] bg-black/20 p-5">
+            <p className="field-label">{t("optimize.generatedBeatTitle")}</p>
+            <audio controls src={generatedBeatUrl} className="mt-4 w-full" />
+            <p className="mt-3 text-sm leading-6 text-app-muted">{t("optimize.generatedBeatBody")}</p>
+          </div>
+        )}
 
-        <h2 className="text-lg font-bold text-gray-800 mb-4">
-          Popularidad estimada
-        </h2>
-
-        <div className="text-6xl font-extrabold text-[#1DB954] mb-3">
-          {predictionResult !== null ? predictionResult.toFixed(0) : "--"}
-        </div>
-
-        <p className="text-sm text-gray-500 mb-6">
-          escala 0 – 100
-        </p>
-
-        <details className="w-full">
-          <summary className="cursor-pointer text-[#1DB954] font-medium">
-            Ver parámetros optimizados
-          </summary>
-          <pre className="text-xs mt-3 overflow-auto max-h-64 bg-gray-50 p-3 rounded border">
+        <details className="details-panel mt-8">
+          <summary className="cursor-pointer px-4 py-3 text-sm font-medium text-app-text">{t("optimize.viewParams")}</summary>
+          <pre className="max-h-96 overflow-auto px-4 pb-4 text-xs leading-6 text-app-muted">
             {JSON.stringify(features, null, 2)}
           </pre>
         </details>
-      </div>
-
+      </section>
     </div>
-  </div>
-);
-
+  );
 }

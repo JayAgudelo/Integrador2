@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Sonic Architect | Music Popularity Predictor</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=Space+Grotesk:wght@300;400;500;700;900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "on-primary": "#006165",
+                        "on-secondary-fixed-variant": "#8400b2",
+                        "surface-variant": "#20262f",
+                        "on-secondary": "#39004f",
+                        "background": "#0a0e14",
+                        "outline-variant": "#44484f",
+                        "surface-container-highest": "#20262f",
+                        "surface": "#0a0e14",
+                        "secondary-container": "#9900ce",
+                        "inverse-primary": "#006a6e",
+                        "on-secondary-fixed": "#580078",
+                        "secondary-fixed-dim": "#ebadff",
+                        "on-tertiary-container": "#005b26",
+                        "error-dim": "#d7383b",
+                        "secondary-dim": "#bc00fb",
+                        "outline": "#72757d",
+                        "tertiary-fixed-dim": "#00ee70",
+                        "on-secondary-container": "#fff5fc",
+                        "on-tertiary-fixed": "#00461c",
+                        "tertiary": "#a7ffb3",
+                        "surface-container-low": "#0f141a",
+                        "tertiary-dim": "#00ee70",
+                        "inverse-surface": "#f8f9ff",
+                        "surface-dim": "#0a0e14",
+                        "primary-fixed": "#00f4fe",
+                        "on-primary-fixed": "#004346",
+                        "primary-container": "#00f4fe",
+                        "secondary": "#d873ff",
+                        "surface-container-lowest": "#000000",
+                        "error": "#ff716c",
+                        "tertiary-container": "#2efd7c",
+                        "on-error-container": "#ffa8a3",
+                        "on-tertiary-fixed-variant": "#00662c",
+                        "surface-container-high": "#1b2028",
+                        "on-surface": "#f1f3fc",
+                        "error-container": "#9f0519",
+                        "primary-dim": "#00e5ee",
+                        "on-error": "#490006",
+                        "on-tertiary": "#00652b",
+                        "on-primary-container": "#00575b",
+                        "tertiary-fixed": "#2efd7c",
+                        "surface-bright": "#262c36",
+                        "inverse-on-surface": "#51555d",
+                        "secondary-fixed": "#f1c1ff",
+                        "on-background": "#f1f3fc",
+                        "primary-fixed-dim": "#00e5ee",
+                        "primary": "#a1faff",
+                        "on-surface-variant": "#a8abb3",
+                        "surface-tint": "#a1faff",
+                        "surface-container": "#151a21",
+                        "on-primary-fixed-variant": "#006266"
+                    },
+                    fontFamily: {
+                        "headline": ["Space Grotesk"],
+                        "body": ["Inter"],
+                        "label": ["Inter"]
+                    },
+                    borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+            vertical-align: middle;
+        }
+        .glass-card {
+            background: rgba(32, 38, 47, 0.4);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+        }
+        .hero-gradient {
+            background: radial-gradient(circle at 50% 50%, rgba(0, 244, 254, 0.08) 0%, transparent 70%);
+        }
+    </style>
+</head>
+<body class="bg-background text-on-surface font-body selection:bg-primary/30 selection:text-primary">
+<!-- Top Navigation Bar -->
+<nav class="fixed top-0 w-full z-50 bg-[#0a0e14]/80 backdrop-blur-xl shadow-[0_20px_40px_rgba(0,245,255,0.05)]">
+<div class="flex justify-between items-center px-8 py-4 w-full max-w-screen-2xl mx-auto">
+<div class="text-2xl font-black tracking-tight text-[#00F5FF] uppercase font-headline">
+                Sonic Architect
+            </div>
+<div class="hidden md:flex items-center gap-8">
+<a class="text-[#00F5FF] border-b-2 border-[#00F5FF] pb-1 font-bold font-inter text-sm" href="#">Home</a>
+<a class="text-[#a8abb3] hover:text-[#00F5FF] transition-colors font-inter text-sm" href="#">Analyze</a>
+<a class="text-[#a8abb3] hover:text-[#00F5FF] transition-colors font-inter text-sm" href="#">Optimize</a>
+<a class="text-[#a8abb3] hover:text-[#00F5FF] transition-colors font-inter text-sm" href="#">How It Works</a>
+<a class="text-[#a8abb3] hover:text-[#00F5FF] transition-colors font-inter text-sm" href="#">Help</a>
+</div>
+<div class="flex items-center gap-4">
+<button class="p-2 rounded-full hover:bg-[#1b2028] transition-all duration-300 scale-95 active:scale-90 text-[#a8abb3]">
+<span class="material-symbols-outlined" data-icon="search">search</span>
+</button>
+<button class="p-2 rounded-full hover:bg-[#1b2028] transition-all duration-300 scale-95 active:scale-90 text-[#00F5FF]">
+<span class="material-symbols-outlined" data-icon="account_circle">account_circle</span>
+</button>
+</div>
+</div>
+</nav>
+<main class="pt-24 pb-20">
+<!-- Hero Section -->
+<section class="relative min-h-[819px] flex flex-col items-center justify-center px-6 overflow-hidden hero-gradient">
+<div class="absolute inset-0 pointer-events-none opacity-20">
+<div class="absolute top-1/4 left-1/4 w-96 h-96 bg-primary/20 blur-[120px] rounded-full"></div>
+<div class="absolute bottom-1/4 right-1/4 w-96 h-96 bg-secondary/10 blur-[120px] rounded-full"></div>
+</div>
+<div class="relative z-10 text-center max-w-4xl">
+<span class="font-label text-[10px] tracking-[0.3em] uppercase text-primary mb-6 block font-bold">The Digital Maestro</span>
+<h1 class="font-headline text-6xl md:text-8xl font-black tracking-tighter text-on-surface mb-8 leading-[0.9]">
+                    Predict your song's <span class="text-transparent bg-clip-text bg-gradient-to-br from-primary to-primary-container">popularity</span> on Spotify.
+                </h1>
+<p class="font-body text-on-surface-variant text-lg md:text-xl max-w-2xl mx-auto mb-12 leading-relaxed">
+                    Harness advanced AI architecture to decode sonic patterns and forecast chart success before you hit release.
+                </p>
+<div class="flex flex-wrap justify-center gap-6">
+<button class="px-8 py-4 bg-gradient-to-br from-primary to-primary-container text-on-primary-container font-headline font-bold rounded-xl shadow-[0_0_30px_rgba(0,244,254,0.2)] hover:scale-[1.02] active:scale-95 transition-all">
+                        GET STARTED
+                    </button>
+<button class="px-8 py-4 bg-surface-container-high text-on-surface font-headline font-bold rounded-xl hover:bg-surface-container-highest transition-all">
+                        EXPLORE MODELS
+                    </button>
+</div>
+</div>
+<!-- Floating Data Visualizer (Aesthetic) -->
+<div class="mt-20 w-full max-w-5xl h-32 flex items-end justify-between gap-1 opacity-40">
+<div class="w-2 bg-primary h-12 rounded-full"></div>
+<div class="w-2 bg-primary-dim h-24 rounded-full"></div>
+<div class="w-2 bg-primary-container h-16 rounded-full"></div>
+<div class="w-2 bg-secondary h-20 rounded-full"></div>
+<div class="w-2 bg-primary h-32 rounded-full"></div>
+<div class="w-2 bg-secondary-dim h-14 rounded-full"></div>
+<div class="w-2 bg-primary h-28 rounded-full"></div>
+<div class="w-2 bg-primary-container h-10 rounded-full"></div>
+<div class="w-2 bg-primary h-22 rounded-full"></div>
+<div class="w-2 bg-secondary h-18 rounded-full"></div>
+<div class="w-2 bg-primary h-26 rounded-full"></div>
+<div class="w-2 bg-primary-dim h-14 rounded-full"></div>
+<div class="w-2 bg-primary-container h-32 rounded-full"></div>
+<div class="w-2 bg-secondary-dim h-20 rounded-full"></div>
+<div class="w-2 bg-primary h-16 rounded-full"></div>
+<div class="w-2 bg-primary h-24 rounded-full"></div>
+<div class="w-2 bg-secondary h-28 rounded-full"></div>
+<div class="w-2 bg-primary-container h-12 rounded-full"></div>
+</div>
+</section>
+<!-- Route Cards: Bento Grid -->
+<section class="max-w-7xl mx-auto px-8 py-24">
+<div class="grid grid-cols-1 md:grid-cols-12 gap-8">
+<!-- Upload Route (Producers) -->
+<div class="md:col-span-8 group relative overflow-hidden rounded-xl bg-surface-container-low p-8 border border-outline-variant/10 hover:border-primary/30 transition-all duration-500">
+<div class="absolute top-0 right-0 p-8 opacity-20 group-hover:opacity-40 transition-opacity">
+<span class="material-symbols-outlined text-8xl" data-icon="audio_file">audio_file</span>
+</div>
+<div class="relative z-10 h-full flex flex-col justify-between">
+<div>
+<span class="font-label text-[10px] tracking-widest uppercase text-secondary mb-4 block">UA-01 // For Producers</span>
+<h3 class="font-headline text-4xl font-bold text-on-surface mb-4">Upload .mp3</h3>
+<p class="font-body text-on-surface-variant max-w-md mb-8">
+                                Deep sonic analysis of your master file. Our neural network processes waveform transients, frequency distribution, and loudness normalization.
+                            </p>
+</div>
+<button class="w-fit px-6 py-3 bg-surface-container-highest text-primary font-headline font-bold rounded-lg group-hover:bg-primary group-hover:text-on-primary transition-all flex items-center gap-2">
+                            ANALYZE FILE <span class="material-symbols-outlined" data-icon="arrow_forward">arrow_forward</span>
+</button>
+</div>
+</div>
+<!-- Search Route (Artists) -->
+<div class="md:col-span-4 group relative overflow-hidden rounded-xl bg-surface-container-high p-8 border border-outline-variant/10 hover:border-secondary/30 transition-all duration-500">
+<div class="relative z-10 flex flex-col h-full">
+<span class="font-label text-[10px] tracking-widest uppercase text-primary mb-4 block">UA-02 // For Artists</span>
+<h3 class="font-headline text-3xl font-bold text-on-surface mb-4">Spotify ID</h3>
+<p class="font-body text-on-surface-variant mb-8">
+                            Pull real-time metadata directly from the Spotify ecosystem to predict ongoing trend longevity.
+                        </p>
+<div class="mt-auto">
+<div class="bg-surface-container-lowest rounded-lg p-1 flex items-center mb-4">
+<span class="material-symbols-outlined ml-3 text-on-surface-variant" data-icon="link">link</span>
+<input class="bg-transparent border-none focus:ring-0 text-sm w-full text-on-surface" placeholder="spotify:track:..." type="text"/>
+</div>
+<button class="w-full py-3 bg-secondary/10 text-secondary border border-secondary/20 font-headline font-bold rounded-lg hover:bg-secondary hover:text-on-secondary transition-all">
+                                SEARCH TRACK
+                            </button>
+</div>
+</div>
+</div>
+<!-- Optimize Route (Analysts) -->
+<div class="md:col-span-12 group relative overflow-hidden rounded-xl bg-[#000000] p-12 flex flex-col md:flex-row items-center justify-between gap-12 border border-outline-variant/5">
+<div class="absolute inset-0 opacity-10">
+<img alt="circuit board data flow" class="w-full h-full object-cover" data-alt="close-up of intricate digital circuit patterns with glowing neon data streams flowing through silicon paths in a dark tech aesthetic" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDc-HT1OwA1ggcJGz966UQGLshiQcNiZ8W3ySXdyN9QJ6N1SaWHawinvrK1uep8XQytpKnmA-f_Arbr1culj_ojevSpZxIfhkH2Gv48716zCPAUgp9WwjLzXIIU3h7RektnBk4aR7uWj0_kHYryfTtdkEZTq91nTkOwBW14vxVeQ1QX7I7w_2e37rUdslXavwbkgy6rg126pbZ9UVKf497nCs2o5pNlfllMu0ggHU_ZdysANQ_dWZyjFkkXHbO9g05oSPuh_0k14Qc"/>
+</div>
+<div class="relative z-10 md:w-1/2">
+<span class="font-label text-[10px] tracking-widest uppercase text-tertiary mb-4 block">UA-03 // For Analysts</span>
+<h3 class="font-headline text-5xl font-bold text-on-surface mb-6">Optimize Parameters</h3>
+<p class="font-body text-on-surface-variant text-lg leading-relaxed">
+                            Fine-tune the variables. Adjust tempo, key, and acousticness to see how subtle shifts in composition impact the final predicted Popularity Score. 
+                        </p>
+</div>
+<div class="relative z-10 md:w-1/3 flex flex-col gap-4">
+<div class="glass-card p-6 rounded-xl border border-outline-variant/10">
+<div class="flex justify-between mb-2">
+<span class="text-xs uppercase font-label tracking-tighter text-on-surface-variant">Danceability</span>
+<span class="text-xs font-bold text-tertiary">84%</span>
+</div>
+<div class="h-1 bg-surface-variant rounded-full overflow-hidden">
+<div class="h-full w-[84%] bg-gradient-to-r from-tertiary to-primary"></div>
+</div>
+</div>
+<button class="px-10 py-5 bg-tertiary text-on-tertiary font-headline font-black rounded-xl hover:scale-105 transition-transform shadow-[0_10px_40px_rgba(46,253,124,0.15)]">
+                            LAUNCH ARCHITECT
+                        </button>
+</div>
+</div>
+</div>
+</section>
+<!-- Brief Explanation Section -->
+<section class="max-w-4xl mx-auto px-8 py-32 text-center border-t border-outline-variant/5">
+<h2 class="font-headline text-4xl font-bold text-on-surface mb-8">Data-Driven Music Strategy</h2>
+<div class="grid md:grid-cols-2 gap-12 text-left">
+<div class="space-y-4">
+<div class="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
+<span class="material-symbols-outlined" data-icon="query_stats">query_stats</span>
+</div>
+<h4 class="font-headline text-xl font-bold">Predictive Intelligence</h4>
+<p class="font-body text-sm text-on-surface-variant leading-relaxed">
+                        Our model is trained on 15 years of Spotify global chart data. We don't just guess; we calculate the mathematical probability of a track fitting the current cultural zeitgeist based on 40+ sonic features.
+                    </p>
+</div>
+<div class="space-y-4">
+<div class="w-12 h-12 rounded-lg bg-secondary/10 flex items-center justify-center text-secondary">
+<span class="material-symbols-outlined" data-icon="insights">insights</span>
+</div>
+<h4 class="font-headline text-xl font-bold">Strategic Optimization</h4>
+<p class="font-body text-sm text-on-surface-variant leading-relaxed">
+                        Move beyond "gut feeling." Use our insights to time your release, select your lead single, and adjust mixing parameters to maximize streaming potential across global markets.
+                    </p>
+</div>
+</div>
+</section>
+</main>
+<!-- Footer -->
+<footer class="w-full py-12 px-8 mt-auto bg-[#0f141a]">
+<div class="flex flex-col md:flex-row justify-between items-center gap-6 w-full max-w-7xl mx-auto">
+<div class="flex flex-col gap-2">
+<div class="font-space-grotesk font-bold text-[#a8abb3] uppercase tracking-tighter text-xl">Sonic Architect</div>
+<p class="font-inter text-xs tracking-wider uppercase text-[#a8abb3]">© 2024 Sonic Architect | EAFIT University</p>
+</div>
+<div class="flex flex-wrap justify-center gap-8">
+<a class="font-inter text-xs tracking-wider uppercase text-[#a8abb3] hover:text-[#00F5FF] transition-colors" href="#">Project Info</a>
+<a class="font-inter text-xs tracking-wider uppercase text-[#a8abb3] hover:text-[#00F5FF] transition-colors" href="#">Privacy Policy</a>
+<a class="font-inter text-xs tracking-wider uppercase text-[#a8abb3] hover:text-[#00F5FF] transition-colors" href="#">Terms of Service</a>
+<a class="font-inter text-xs tracking-wider uppercase text-[#a8abb3] hover:text-[#00F5FF] transition-colors" href="#">Contact Support</a>
+</div>
+<div class="flex gap-4">
+<div class="w-8 h-8 rounded-full border border-outline-variant/20 flex items-center justify-center text-[#a8abb3] hover:text-[#00F5FF] transition-colors cursor-pointer">
+<span class="material-symbols-outlined text-sm" data-icon="public">public</span>
+</div>
+<div class="w-8 h-8 rounded-full border border-outline-variant/20 flex items-center justify-center text-[#a8abb3] hover:text-[#00F5FF] transition-colors cursor-pointer">
+<span class="material-symbols-outlined text-sm" data-icon="terminal">terminal</span>
+</div>
+</div>
+</div>
+</footer>
+</body></html>
