@@ -27,14 +27,15 @@ app.add_middleware(
 
 # Lazy loading for model
 _model = None
-_preprocessor_route = "backend/api/models/preprocessor.joblib"
+_preprocessor_route = os.path.join(os.path.dirname(__file__), "../models/preprocessor.joblib")
 
 def get_model():
     global _model
     if _model is None:
         try:
             logging.info("Loading model...")
-            _model = joblib.load("backend/api/models/model.joblib")
+            model_path = os.path.join(os.path.dirname(__file__), "../models/model.joblib")
+            _model = joblib.load(model_path)
             logging.info("Model loaded successfully.")
         except Exception as e:
             logging.error(f"Failed to load model: {e}")
