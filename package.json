@@ -1,5 +1,21 @@
 {
+  "name": "music-popularity-predictor",
+  "version": "1.0.0",
+  "description": "Full-stack music popularity prediction application",
+  "scripts": {
+    "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
+    "dev:backend": "cd backend && python -m api.app",
+    "dev:frontend": "cd frontend && npm start",
+    "build:frontend": "cd frontend && npm run build",
+    "deploy:frontend": "npm run build:frontend && netlify deploy --prod --dir frontend/build",
+    "test": "cd frontend && npm test",
+    "lint": "cd frontend && npm run lint"
+  },
   "dependencies": {
-    "canvas-confetti": "^1.9.4"
+    "canvas-confetti": "^1.9.4",
+    "concurrently": "^8.2.2"
+  },
+  "devDependencies": {
+    "netlify-cli": "^17.0.0"
   }
 }
