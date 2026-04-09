@@ -1,3 +1,0 @@
-libgomp1
-libsndfile1
-libstdc++6
