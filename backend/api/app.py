@@ -10,8 +10,8 @@ from pydantic import BaseModel
 import requests
 from dotenv import load_dotenv
 
-from backend.api.model import prediction
-from backend.api.feature_extraction import get_complete_features
+from api.model import prediction
+from api.feature_extraction import get_complete_features
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -47,14 +47,14 @@ async def preflight_handler():
 
 # Lazy loading for model
 _model = None
-_preprocessor_route = os.path.join(os.path.dirname(__file__), "../models/preprocessor.joblib")
+_preprocessor_route = os.path.join(os.path.dirname(__file__), "./models/preprocessor.joblib")
 
 def get_model():
     global _model
     if _model is None:
         try:
             logging.info("Loading model...")
-            model_path = os.path.join(os.path.dirname(__file__), "../models/model.joblib")
+            model_path = os.path.join(os.path.dirname(__file__), "./models/model.joblib")
             _model = joblib.load(model_path)
             logging.info("Model loaded successfully.")
         except Exception as e:
