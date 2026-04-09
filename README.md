@@ -38,7 +38,6 @@ A full-stack application for predicting music track popularity using machine lea
 - **Environment Variables**:
   - `SPOTIFY_CLIENT_ID`
   - `SPOTIFY_CLIENT_SECRET`
-  - `RECCOBEATS_API_KEY`
   - `BEATOVEN_API_KEY`
 
 ### Frontend (Netlify)

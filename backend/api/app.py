@@ -24,7 +24,8 @@ app.add_middleware(
         "https://musicpredictor.netlify.app",
         "http://localhost:3000",
         "http://localhost:8000",
-        "https://integrador2-37j4.onrender.com"
+        "https://integrador2-37j4.onrender.com",
+        "https://integrador2-production-72e9.up.railway.app"
     ],
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allow_headers=[
