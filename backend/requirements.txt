@@ -10,4 +10,5 @@ librosa==0.10.1
 scikit-learn==1.6.1
 python-multipart==0.0.6
 lightgbm==4.1.0
-setuptools
+setuptools==70.0.0
+wheel==0.40.0
