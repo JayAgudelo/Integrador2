@@ -35,6 +35,9 @@ A full-stack application for predicting music track popularity using machine lea
 - **Deployment Root**: `backend/` folder
 - **Main File**: `api/app.py`
 - **Requirements**: `requirements.txt`
+- **System Dependencies**: `apt.txt` (instala libgomp1 para scikit-learn/LightGBM)
+- **Python Version**: `runtime.txt` (Python 3.11)
+- **Railway Config**: `railway.toml`
 - **Environment Variables**:
   - `SPOTIFY_CLIENT_ID`
   - `SPOTIFY_CLIENT_SECRET`

@@ -1,0 +1,4 @@
+libgomp1
+libgomp1-dev
+gcc
+g++
