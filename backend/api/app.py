@@ -13,8 +13,8 @@ from dotenv import load_dotenv
 from api.model import prediction
 from api.feature_extraction import get_complete_features
 
-# Configure logging
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+# Minimal logging (only errors)
+logging.basicConfig(level=logging.ERROR)
 
 app = FastAPI()
 
@@ -41,12 +41,10 @@ app.add_middleware(
     max_age=86400,
 )
 
-# Handle preflight OPTIONS requests
 @app.options("/{path:path}")
 async def preflight_handler():
     return JSONResponse(status_code=200, content={"message": "OK"})
 
-# Lazy loading for model
 _model = None
 _preprocessor_route = os.path.join(os.path.dirname(__file__), "./models/preprocessor.joblib")
 
@@ -54,10 +52,8 @@ def get_model():
     global _model
     if _model is None:
         try:
-            logging.info("Loading model...")
             model_path = os.path.join(os.path.dirname(__file__), "./models/model.joblib")
             _model = joblib.load(model_path)
-            logging.info("Model loaded successfully.")
         except Exception as e:
             logging.error(f"Failed to load model: {e}")
             raise
@@ -65,13 +61,11 @@ def get_model():
 
 RECCO_BASE = "https://api.reccobeats.com/v1"
 
-
 def error_response(stage: str, message: str, status_code: int = 400, detail: str | None = None):
     payload = {"error": message, "stage": stage}
     if detail:
         payload["detail"] = detail
     return JSONResponse(status_code=status_code, content=payload)
-
 
 @app.post("/predict")
 async def predict_from_features(features: dict):
@@ -82,7 +76,6 @@ async def predict_from_features(features: dict):
     except Exception as exc:
         logging.error(f"Prediction failed: {exc}")
         return error_response("predict", "Prediction failed for the provided feature set.", 500, str(exc))
-
 
 @app.post("/extract-features")
 async def extract_features(audio: UploadFile = File(...), genre: str | None = Form(None)):
@@ -106,7 +99,6 @@ async def extract_features(audio: UploadFile = File(...), genre: str | None = Fo
     finally:
         if os.path.exists(audio_path):
             os.remove(audio_path)
-
 
 @app.get("/search-track")
 def search_track(ids: str = Query(..., description="IDs separados por coma")):
@@ -132,7 +124,6 @@ def search_track(ids: str = Query(..., description="IDs separados por coma")):
 
     track_features = data["content"][0]
     return track_features.get("id")
-
 
 @app.get("/track-features")
 def track_features(
@@ -181,22 +172,18 @@ def track_features(
 
     return filtered_features
 
-
 class WizardRequest(BaseModel):
     features: dict
     locked_features: list[str] = []
-
 
 class BeatGenerationRequest(BaseModel):
     features: dict
     duration_seconds: int = 15
     prompt_text: str | None = None
 
-
 load_dotenv(dotenv_path="backend/.env")
 BEATOVEN_API_KEY = os.environ.get("BEATOVEN_API_KEY")
 BEATOVEN_BASE_URL = "https://public-api.beatoven.ai"
-
 
 def build_beatoven_prompt(features: dict, duration_seconds: int, prompt_text: str | None = None) -> str:
     if prompt_text:
@@ -218,7 +205,6 @@ def build_beatoven_prompt(features: dict, duration_seconds: int, prompt_text: st
         f"{duration_seconds} second instrumental {genre} beat base, tempo {tempo} BPM, {energy_text}, "
         f"{dance_text}, {mood_text}, {loudness_text} drums and bass. No vocals, only the instrumental foundation."
     )
-
 
 def compose_beatoven_track(prompt_text: str, duration_seconds: int = 15, output_format: str = "mp3") -> str:
     if not BEATOVEN_API_KEY:
@@ -256,7 +242,6 @@ def compose_beatoven_track(prompt_text: str, duration_seconds: int = 15, output_
         time.sleep(5)
 
     raise RuntimeError(f"Beatoven task did not complete in time: {status_response.json()}")
-
 
 @app.post("/wizard-optimize")
 def wizard_optimize(request: WizardRequest):
@@ -310,7 +295,6 @@ def wizard_optimize(request: WizardRequest):
         logging.error(f"Wizard optimize failed: {exc}")
         return error_response("wizard-optimize", "Optimization failed for the provided feature set.", 500, str(exc))
 
-
 @app.post("/generate-beat-base")
 def generate_beat_base(request: BeatGenerationRequest):
     try:
@@ -325,8 +309,6 @@ def generate_beat_base(request: BeatGenerationRequest):
             "prompt": prompt_text,
         }
     except requests.HTTPError as exc:
-        print(exc)
         return error_response("generate-beat-base", "Beatoven API request failed.", 502, str(exc))
     except Exception as exc:
-        print(exc)
         return error_response("generate-beat-base", "Beat generation failed.", 500, str(exc))
